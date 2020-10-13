@@ -5,6 +5,9 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <stdlib.h> 
+#include <string.h>
+#include <unistd.h>
 
 #define BAUDRATE B38400
 #define MODEMDEVICE "/dev/ttyS1"
@@ -102,7 +105,11 @@ int main(int argc, char** argv)
     printf("%d bytes written\n", res);
  
     char replybuffer[255];
-    res = read(fd, replybuffer, 255);
+    while (STOP=FALSE){
+        res = read(fd, replybuffer, 255);
+        buf[res]=0;
+        if (buf[res-1] == '\n') STOP=TRUE;
+    }
     printf("Message received: %s\n ",replybuffer);
 
 

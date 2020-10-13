@@ -5,6 +5,9 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
@@ -80,8 +83,12 @@ int main(int argc, char** argv)
     }
 
     printf("content of buf %s", buf);
-    res = write(fd,buf,strlen(buf));   
+	for (int i = 0; i < strlen(buf) -1; i++){
+    	res = write(fd,&buf[i],strlen(buf));   
+	}
     printf("%d bytes written\n", res);
+
+	
 
 
 
