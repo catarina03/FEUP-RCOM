@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <termios.h>
 #include <stdio.h>
 #include <stdlib.h> 
@@ -17,8 +18,35 @@
 
 volatile int STOP=FALSE;
 
+static int alarmFlag = 0;
+
+
+
+void sigalrm_handler(int signo){
+  alarmFlag++;
+
+	//printf("Alarm ringing\n");
+
+}
+
+
+
+
 int main(int argc, char** argv)
 {
+
+    struct sigaction act_alarm;
+    act_alarm.sa_handler = sigalrm_handler;
+    sigemptyset(&act_alarm.sa_mask);
+    act_alarm.sa_flags = 0;
+    
+    if (sigaction(SIGALRM,&act_alarm,NULL) < 0)  {        
+        fprintf(stderr,"Unable to install SIGALARM handler\n");        
+        exit(1);  
+    }   
+
+
+  
     int fd,c, res;
     struct termios oldtio,newtio;
     char buf[255];
@@ -26,7 +54,9 @@ int main(int argc, char** argv)
     
     if ( (argc < 2) || 
   	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
-  	      (strcmp("/dev/ttyS1", argv[1])!=0) )) {
+  	      (strcmp("/dev/ttyS1", argv[1])!=0) &&
+          (strcmp("/dev/ttyS10", argv[1])!=0) && 
+  	      (strcmp("/dev/ttyS11", argv[1])!=0) )) {
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
     }
