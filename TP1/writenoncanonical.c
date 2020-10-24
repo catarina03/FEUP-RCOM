@@ -10,22 +10,49 @@
 #include <string.h>
 #include <unistd.h>
 
+
+
+
+
+
+
+
+
+
+
+
 #define BAUDRATE B38400
-#define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
 
-volatile int STOP=FALSE;
-
-static int alarmFlag = 0;
 
 
+static int STOP=FALSE;
 
+static int alarmFlag = 1;
+
+static int alarmCounter=0;
+
+static int fd;
+static char buf[255];
+static int res;
+
+
+void resendMsg(){
+
+    res = write(fd,buf,strlen(buf));   
+    printf("%d bytes written\n", res);
+
+
+}
 void sigalrm_handler(int signo){
-  alarmFlag++;
-
-	//printf("Alarm ringing\n");
+  
+  alarmFlag=0;
+  alarmCounter++;
+  resendMsg();
+	if(alarmCounter<3)
+    alarm(3);
 
 }
 
@@ -47,9 +74,8 @@ int main(int argc, char** argv)
 
 
   
-    int fd,c, res;
+    int c;
     struct termios oldtio,newtio;
-    char buf[255];
     int i, sum = 0, speed = 0;
     
     if ( (argc < 2) || 
@@ -129,18 +155,36 @@ int main(int argc, char** argv)
     o indicado no gui�o 
   */
 
+    
+    int flag = 0;
     printf("Message: ");
     fgets(buf,255,stdin);
-    res = write(fd,buf,strlen(buf));   
-    printf("%d bytes written\n", res);
- 
-    char replybuffer[255];
-    while (STOP=FALSE){
-        res = read(fd, replybuffer, 255);
-        buf[res]=0;
-        if (buf[res-1] == '\n') STOP=TRUE;
+    resendMsg();
+    alarm(3);  
+    while(alarmCounter < 3 && !flag){
+      char replybuffer[255];
+      while (STOP==FALSE && alarmFlag){
+          int res1;
+          res1 = read(fd, replybuffer, 255);
+          if(res1>=0){
+            replybuffer[res1]=0;
+            if (replybuffer[res1-1] == '\n') STOP=TRUE;
+          }
+      }
+      if(STOP){
+        printf("Message received: %s\n ",replybuffer);
+        flag=1;
+        break;
+      }
+      else{
+        alarmFlag=1;
+      }
+      
     }
-    printf("Message received: %s\n ",replybuffer);
+
+
+
+
 
 
 
@@ -153,4 +197,10 @@ int main(int argc, char** argv)
 
     close(fd);
     return 0;
+
+
+    
+
+
+
 }

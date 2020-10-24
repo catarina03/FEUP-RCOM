@@ -1,20 +1,32 @@
 /*Non-Canonical Input Processing*/
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <termios.h>
 #include <stdio.h>
+#include <stdlib.h> 
 #include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
+
+
+
+
+
+
+
+
+
+
+
 
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
 
-volatile int STOP=FALSE;
+
+static int STOP=FALSE;
 
 int main(int argc, char** argv)
 {
@@ -84,11 +96,14 @@ int main(int argc, char** argv)
       if (buf[res-1]=='\n') STOP=TRUE;
     }
 
-    printf("content of buf %s", buf);
-	for (int i = 0; i < strlen(buf) -1; i++){
-    	res = write(fd,&buf[i],strlen(buf));   
-	}
-    printf("%d bytes written\n", res);
+    printf("content of buf: %s", buf);
+
+    int res1=0;
+    res1 = write(fd,buf,strlen(buf));   
+    if (res!=res1){
+      printf("Warning: Diferent number of bytes read and sent\n");
+    }
+    printf("%d bytes written\n", res1);
 
 	
 
