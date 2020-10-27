@@ -2,54 +2,131 @@
 
 #include "macros.h"
 
-
 static int STOP=FALSE;
+static int fd;
 
 
+int recieveMessage(int fd, unsigned char msg) {
+  int part=0;
+  unsigned char rcv_msg;
+  printf("Reading...\n");
+  while (part!=5) {
 
-
-
-
-
-void receiveMessage(int *part, unsigned char *msg) {
+    read(fd,&rcv_msg,1);
+    switch (part) {
+      case 0:
+        if(rcv_msg==FLAG){
+          part=1;
+          printf("FLAG: %c\n",rcv_msg);
+        }
+        break;
+      case 1:
+        if(rcv_msg==A){
+          part=2;
+          printf("A: %c\n",rcv_msg);
+        }
+        else {
+          if(rcv_msg==FLAG)
+            part=1;
+          else
+            part=0;
+        }
+        break;
+      case 2:
+        if(rcv_msg==msg){
+          part=3;
+          printf("Control: %c\n",rcv_msg);
+        }
+        else
+          part=0;
+        break;
+      case 3:
+        if(rcv_msg==(A^msg)){
+          part=4;
+          printf("Control BCC: %c\n",rcv_msg);
+        }
+        else
+          part=0;
+        break;
+      case 4:
+        if(rcv_msg==FLAG) {
+          part = 5;
+          printf("FINAL FLAG: %c\nReceived Control\n",rcv_msg);
+        }
+        else
+          part=0;
+        break;
+      default:
+        break;
+    }
+  }
   
-      if(*part==0 && *msg==FLAG){
-        *part++;
-        printf("FLAG: %c\n",*msg);
+  return TRUE;
+}
+
+
+/*
+int recieveMessage( unsigned char msg_type) {
+    printf("Reading...\n");
+    int part = 0;
+    unsigned char msg[5];
+    while (part!=5) {
+      printf("%c", part);
+
+      read(fd, &msg[part], 1);
+      if(part==0 && msg[part]==FLAG){
+        printf("FLAG: %c\n",msg[part]);
+        part++;
+        
       }
-      else if(*part==1){ 
-        if(*msg==A){
-          *part++;
-          printf("A: %c\n",*msg);
+      else if(part==1){ 
+        if(msg[part]==A){
+          printf("A: %c\n",msg[part]);
+          part++;
+          
         }
         else 
-            *part=0;
+            part=0;
       }
-      else if(*part==2){ 
-        if(*msg==SET){
-          *part=3;
-          printf("C: %c\n",*msg);
+      else if(part==2){ 
+        if(msg[part]==msg_type){  //SET or UA
+          printf("C: %c\n",msg[part]);
+          part=3;
         }
         else
-          *part=0;
+          part=0;
       }
-      else if(*part==3){ 
-        if(*msg==(SET_BCC)){
-          *part++;
-          printf("UA_BCC: %c\n",*msg);
+      else if(part==3){ 
+        if(msg[part]==(SET_BCC)){
+          printf("SET_BCC: %c\n",msg[part]);
+          part++;
         }
         else
-          *part=0;
+          part=0;
       }
-      else if(*part==3){ 
-        if(*msg==FLAG) {
+      else if(part==4){ 
+        if(msg[part]==FLAG) {
           STOP = TRUE;
-          printf("FINAL FLAG: %c\nReceived UA\n",*msg);
+          printf("FINAL FLAG: %c\nReceived UA\n",msg[part]);
+          return TRUE;
         }
         else
-          *part=0;
+          part=0;
       }
-    
+    }
+    if (part == 5) return TRUE;
+    else return FALSE;
+}*/
+
+
+void resendMessage(int fd, unsigned char msg) {
+  unsigned char mesh[5];
+  mesh[0]=FLAG;
+  mesh[1]=A;
+  mesh[2]=msg;
+  mesh[3]=mesh[1]^mesh[2];
+  mesh[4]=FLAG;
+  write(fd,mesh,5);
 }
 
 
@@ -59,7 +136,8 @@ void receiveMessage(int *part, unsigned char *msg) {
 
 int main(int argc, char** argv)
 {
-    int fd,c, res;
+    //int fd,c; 
+    int res;
     struct termios oldtio,newtio;
     char buf[255];
 
@@ -95,8 +173,8 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
+    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
 
 
 
@@ -117,10 +195,11 @@ int main(int argc, char** argv)
     //printf("New termios structure set\n");
 
 
-    while (STOP==FALSE) {       /* loop for input */
-      res = read(fd,buf,255);   /* returns after 5 chars have been input */
+/*
+    while (STOP==FALSE) {       /* loop for input 
+      res = read(fd,buf,255);   /* returns after 5 chars have been input 
       buf[res]=0;     
-                /* so we can printf... */
+                /* so we can printf... 
       printf(":%s:%d\n", buf, res);
       if (buf[res-1]=='\n') STOP=TRUE;
     }
@@ -134,7 +213,7 @@ int main(int argc, char** argv)
     }
     printf("%d bytes written\n", res1);
 
-	
+*/
 
 
 
@@ -143,8 +222,12 @@ int main(int argc, char** argv)
   */
 
 
+  unsigned char buff;
+  if(recieveMessage(fd,SET))
+    resendMessage(fd,UA); //Recieving 
 
-    tcsetattr(fd,TCSANOW,&oldtio);
-    close(fd);
-    return 0;
+
+  tcsetattr(fd,TCSANOW,&oldtio);
+  close(fd);
+  return 0;
 }

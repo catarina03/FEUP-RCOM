@@ -2,19 +2,16 @@
 
 #include "macros.h"
 
-
-
 static int STOP=FALSE;
 
 static int alarmFlag = 1;
 
 static int alarmCounter=0;
 
+static int fd;
 
 
-
-
-void sendMessage(,int fd, unsigned char msg) {
+void sendMessage(int fd, unsigned char msg) {
   unsigned char mesh[5];
   mesh[0]=FLAG;
   mesh[1]=A;
@@ -29,14 +26,68 @@ void sigalrm_handler(int signo){
   
   alarmFlag=0;
   alarmCounter++;
-  sendMsg(SET);
-  printf("Sending message\n");
-	if(alarmCounter<3)
+  
+	if(alarmCounter<3){
     alarm(3);
+    sendMessage(fd, SET);
+    printf("Sending message\n");
+  }
 
 }
 
-void receiveResponse(int *part, unsigned char msg) {
+void receiveResponse(int *part, unsigned char *msg) {
+  
+  switch (*part)
+  {
+  case 0:
+    if(*msg==FLAG){
+      *part=1;
+      printf("FLAG: %c\n",*msg);
+    }
+         
+    break;
+  case 1:
+    if(*msg==A){
+      *part=2;
+      printf("A: %c\n",*msg);
+    }
+    else {
+      if(*msg==FLAG)
+        *part=1;
+      else
+        *part=0;
+    }
+    break;
+  case 2:
+    if(*msg==UA){
+      *part=3;
+      printf("UA: %c\n",*msg);
+    }
+    else
+      *part=0;
+    break;
+  case 3:
+    if(*msg==(UA_BCC)){
+      *part=4;
+      printf("UA_BCC: %c\n",*msg);
+    }
+    else
+      *part=0;
+    break;
+  case 4:
+    if(*msg==FLAG) {
+      STOP = TRUE;
+      printf("FINAL FLAG: %c\nReceived UA\n",*msg);
+    }
+    else
+      *part=0;
+    break;
+  default:
+    break;
+  }
+}
+
+/*void receiveResponse(int *part, unsigned char msg) {
   
       if(*part==0 && msg==FLAG){
         *part++;
@@ -52,7 +103,7 @@ void receiveResponse(int *part, unsigned char msg) {
       }
       else if(*part==2){ 
         if(msg==UA){
-          *part=3;
+          *part++;
           printf("C: %c\n",msg);
         }
         else
@@ -66,7 +117,7 @@ void receiveResponse(int *part, unsigned char msg) {
         else
           *part=0;
       }
-      else if(*part==3){ 
+      else if(*part==4){ 
         if(msg==FLAG) {
           STOP = TRUE;
           printf("FINAL FLAG: %c\nReceived UA\n",msg);
@@ -75,7 +126,7 @@ void receiveResponse(int *part, unsigned char msg) {
           *part=0;
       }
     
-}
+}*/
 
 
 int main(int argc, char** argv)
@@ -91,10 +142,9 @@ int main(int argc, char** argv)
         exit(1);  
     }   
 
-    int fd;
-    int c;
+    //int c;
     struct termios oldtio,newtio;
-    int i, sum = 0, speed = 0;
+    //int i, sum = 0, speed = 0;
     
     if ( (argc < 2) || 
   	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
@@ -104,8 +154,6 @@ int main(int argc, char** argv)
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
     }
-
-    //gets(stdin);
 
 
   /*
@@ -130,8 +178,8 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
+    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
 
 
 
@@ -159,23 +207,23 @@ int main(int argc, char** argv)
 
     
     
-    sendMessage(SET);
+    sendMessage(fd, SET);
     alarm(3);  
-    int res;
     int times=0;
-    while(alarmCounter < 3){
+    while(alarmCounter < 3 && !STOP){
       unsigned char replybuffer;
-      while (STOP==FALSE && alarmFlag){
+      while (!STOP && alarmFlag){
           
-          res = read(fd, replybuffer, 1);
-          if(res >=0){
-            receiveResponse(&times,replybuffer);
+          
+          if(read(fd, &replybuffer, 1) >=0){
+            receiveResponse(&times,&replybuffer);
           }
           
           
       }
       if(!STOP){
         printf("Timed-out\n");
+        
       }
       
     }
