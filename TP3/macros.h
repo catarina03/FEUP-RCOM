@@ -21,3 +21,6 @@
 #define UA 0x07
 #define SET_BCC A ^ SET
 #define UA_BCC A ^ UA
+
+#define EMISSOR 1234
+#define RECETOR 4321
