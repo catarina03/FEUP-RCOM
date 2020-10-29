@@ -22,5 +22,11 @@
 #define SET_BCC A ^ SET
 #define UA_BCC A ^ UA
 
-#define EMISSOR 1234
-#define RECETOR 4321
+#define ESC 0x7d
+#define ESC_ESC 0x5d
+#define ESC_FLAG 0x5e
+
+#define CONTROL_I(r) ((r == 0) ? 0x00 : 0x40)
+
+#define TRANSMITTER 1234
+#define RECEIVER 4321
