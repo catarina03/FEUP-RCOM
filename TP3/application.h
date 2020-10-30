@@ -13,8 +13,16 @@ typedef struct{
     int rawSize;
 }infoFrame;
 
+typedef struct{
+    unsigned char flag;
+    unsigned char address;
+    unsigned char control;
+    unsigned char bcc;   
+}supervisionFrame;
 
-int llopen(int number, int type);
+void buildProtectionFrame(supervisionFrame *frame, unsigned char controlByte);
+
+int llopen(char *port, int type);
 
 int llwrite(int fd, char* buffer,int length);
 
@@ -23,3 +31,11 @@ int llread(int fd, char* buffer);
 int llclose(int fd, int type);
 
 infoFrame messageStuffing(char* buff, int length);
+
+infoFrame messageDestuffing(char*buff);
+
+int openReader(char *port);
+
+int openWriter(char *port);
+
+void printFrame(infoFrame frame);

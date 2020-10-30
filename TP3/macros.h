@@ -27,6 +27,10 @@
 #define ESC_FLAG 0x5e
 
 #define CONTROL_I(r) ((r == 0) ? 0x00 : 0x40)
+#define CONTROL_RR(r) ((r == 0) ? 0x05 : 0x85)
+#define CONTROL_RJ(r) ((r == 0) ? 0x01 : 0x81)
+
+#define STOP_AND_WAIT 50
 
 #define TRANSMITTER 1234
 #define RECEIVER 4321

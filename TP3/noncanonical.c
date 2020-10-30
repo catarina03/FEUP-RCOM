@@ -3,16 +3,16 @@
 #include "macros.h"
 
 static int STOP=FALSE;
-static int fd;
 
 
-int recieveMessage(int fd, unsigned char msg) {
+int receiveMessage(int fd, unsigned char msg) {
   int part=0;
   unsigned char rcv_msg;
   printf("Reading...\n");
   while (part!=5) {
 
-    read(fd,&rcv_msg,1);
+    read(fd, &rcv_msg,1);
+    printf("byte: %d\n", rcv_msg);
     switch (part) {
       case 0:
         if(rcv_msg==FLAG){
@@ -130,7 +130,7 @@ void resendMessage(int fd, unsigned char msg) {
 }
 
 
-
+/*
 
 
 
@@ -151,16 +151,14 @@ int main(int argc, char** argv)
     }
 
 
-  /*
-    Open serial port device for reading and writing and not as controlling tty
-    because we don't want to get killed if linenoise sends CTRL-C.
-  */
+    //Open serial port device for reading and writing and not as controlling tty
+    //because we don't want to get killed if linenoise sends CTRL-C.
   
     
     fd = open(argv[1], O_RDWR | O_NOCTTY );
     if (fd <0) {perror(argv[1]); exit(-1); }
 
-    if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
+    if ( tcgetattr(fd,&oldtio) == -1) { //save current port settings
       perror("tcgetattr");
       exit(-1);
     }
@@ -170,18 +168,18 @@ int main(int argc, char** argv)
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
 
-    /* set input mode (non-canonical, no echo,...) */
+    // set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
+    newtio.c_cc[VTIME]    = 0;   // inter-character timer unused
+    newtio.c_cc[VMIN]     = 5;   // blocking read until 5 chars received 
 
 
 
-  /* 
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-    leitura do(s) pr�ximo(s) caracter(es)
-  */
+  
+    //VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
+    //leitura do(s) pr�ximo(s) caracter(es)
+  
 
 
 
@@ -195,35 +193,11 @@ int main(int argc, char** argv)
     //printf("New termios structure set\n");
 
 
-/*
-    while (STOP==FALSE) {       /* loop for input 
-      res = read(fd,buf,255);   /* returns after 5 chars have been input 
-      buf[res]=0;     
-                /* so we can printf... 
-      printf(":%s:%d\n", buf, res);
-      if (buf[res-1]=='\n') STOP=TRUE;
-    }
-
-    printf("content of buf: %s", buf);
-
-    int res1=0;
-    res1 = write(fd,buf,strlen(buf));   
-    if (res!=res1){
-      printf("Warning: Diferent number of bytes read and sent\n");
-    }
-    printf("%d bytes written\n", res1);
-
-*/
-
-
-
-  /* 
-    O ciclo WHILE deve ser alterado de modo a respeitar o indicado no gui�o 
-  */
+    //O ciclo WHILE deve ser alterado de modo a respeitar o indicado no gui�o 
 
 
   unsigned char buff;
-  if(recieveMessage(fd,SET))
+  if(receiveMessage(fd,SET))
     resendMessage(fd,UA); //Recieving 
 
 
@@ -231,3 +205,6 @@ int main(int argc, char** argv)
   close(fd);
   return 0;
 }
+
+
+*/

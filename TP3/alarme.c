@@ -11,6 +11,7 @@ void atende()                   // atende alarme
 	conta++;
 }
 
+/*
 
 main()
 {
@@ -27,3 +28,4 @@ printf("Vou terminar.\n");
 
 }
 
+*/
