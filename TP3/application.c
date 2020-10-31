@@ -18,7 +18,10 @@ int openReader(char *port){
     because we don't want to get killed if linenoise sends CTRL-C.
     */
     fd = open(port, O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(port); exit(-1); }
+    if (fd <0) {
+        perror(port); 
+        exit(-1); 
+    }
 
     if(receiveMessage(fd,SET)){
         printf("Receiving SET\n");
@@ -31,6 +34,29 @@ int openReader(char *port){
 
     return 0;
 }
+
+
+int closeWriter(int fd){
+
+    //to be
+
+
+    return 1;
+}
+
+
+
+int closeReader(int fd){
+
+
+
+    //to be
+
+
+    return 1;
+}
+
+
 
 int openWriter(char *port){
 
@@ -47,21 +73,28 @@ int openWriter(char *port){
     //Sending supervision frame
     sendMessage(fd, SET);
 
-    alarm(3);  
+    int stop=0;
+
     int times=0;
-    while(alarmCounter < 3 && !STOP){
-      unsigned char replybuffer;
-      while (!STOP && alarmFlag){
-        if(read(fd, &replybuffer, 1) >=0){
-          receiveResponse(&times,&replybuffer);
-        }  
+    while(getAlarmCounter() < 3 && !stop){
+        alarm(3);  
+      
+      while (!stop && !getAlarmFlag()){
+        stop=receiveMessage(fd,UA);
       }
-      if(!STOP){
+      if(getAlarmFlag()){
         printf("Timed-out\n");
       }
     }
 
 
+    setAlarmCounter(0);
+
+
+    if(getAlarmCounter()==3){
+        printf("Gave up\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -84,7 +117,7 @@ int llopen(char *port, int type){
         return openWriter(port);
     }
 
-    return 0;
+    return -1;
 }
 
 
@@ -110,14 +143,12 @@ int llclose(int fd, int type){
 int llwrite(int fd, char* buffer,int length){
 
     //Init
+    printf("Message: %s\n", buffer);
 
-    int size;    //Manda set (tem que receber UA)
-    prisize=(ntf("Message: %s\n", buffer);
-)
     infoFrame frame = messageStuffing(buffer, length);
 
     int size;
-    if(size==(write(fd,frame.rawData,frame.rawSize)>=0))
+    if((size=write(fd, frame.rawData, frame.rawSize)>=0))
         printf("Message sent\n");
     else
         printf("Message not sent\n");
@@ -126,7 +157,7 @@ int llwrite(int fd, char* buffer,int length){
     //stop and wait part
     usleep(STOP_AND_WAIT);
 
-    unsigned char response =readSupervisionFrame(int fd);
+    unsigned char response = readSupervisionFrame(fd);
 
     if(response==CONTROL_RJ(1)||response==CONTROL_RJ(0)){
         printf("Negative response\n");
@@ -148,7 +179,7 @@ int llread(int fd, char* buffer){
     infoFrame frame = messageDestuffing(buffer);
 
 
-    memcpy(buff, frame.data,frame.size);
+    memcpy(buffer, frame.data,frame.size);
     unsigned char bcc2=0xff;
     for (int i=0;i<frame.size;i++){
         bcc2^=frame.data[i];
@@ -248,8 +279,9 @@ infoFrame messageDestuffing( char* buff){
         
         if (size>0 && frame.rawData[size-extra-1] == ESC) {
             
-            if (frame.rawData[size-extra] == ESC_ESC)
-                extra++;           }
+            if (frame.rawData[size-extra] == ESC_ESC){
+                extra++;           
+            }
             else if (frame.rawData[size-extra+1] == ESC_FLAG){
                 frame.rawData[size-extra-1]=FLAG;
                 extra++;
@@ -272,9 +304,6 @@ infoFrame messageDestuffing( char* buff){
     frame.size=size-4;
     return frame;
     
-
-
-
 }
 
 

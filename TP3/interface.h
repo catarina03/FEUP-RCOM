@@ -1,8 +1,8 @@
 #include "macros.h"
-#include "protocol.h"
 #include "application.h"
 
 typedef struct{
-    char *fileDescriptor;/*Descritor correspondente à porta série*/
+    char *port;  //Path da porta de série passado pelo user
+    int fileDescriptor;/*Descritor correspondente à porta série*/
     int status;/*TRANSMITTER | RECEIVER*/
 }applicationLayer;

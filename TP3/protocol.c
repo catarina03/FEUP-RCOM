@@ -1,22 +1,42 @@
 #include "protocol.h"
 
+static int alarmCounter = 0;
+
+static int alarmFlag = 0;
+
 void sigalarm_handler(int signo){
   
-  alarmFlag=0;
+  alarmFlag=1;
   alarmCounter++;
 
 }
 
+int getAlarmFlag(){
+  return alarmFlag;
+}
+
+int getAlarmCounter(){
+  return alarmCounter;
+}
+
+void setAlarmFlag(int flag){
+  alarmFlag=flag;
+}
+
+void setAlarmCounter(int counter){
+  alarmCounter=counter;
+}
+
 void setAlarm(){
   struct sigaction act_alarm;
-        act_alarm.sa_handler = sigalrm_handler;
-        sigemptyset(&act_alarm.sa_mask);
-        act_alarm.sa_flags = 0;
-        
-        if (sigaction(SIGALRM,&act_alarm,NULL) < 0)  {        
-            fprintf(stderr,"Unable to install SIGALARM handler\n");        
-            exit(1);  
-        } 
+  act_alarm.sa_handler = sigalarm_handler;
+  sigemptyset(&act_alarm.sa_mask);
+  act_alarm.sa_flags = 0;
+  
+  if (sigaction(SIGALRM,&act_alarm,NULL) < 0)  {        
+      fprintf(stderr,"Unable to install SIGALARM handler\n");        
+      exit(1);  
+  } 
 }
 
 unsigned char readSupervisionFrame(int fd){
@@ -45,7 +65,7 @@ unsigned char readSupervisionFrame(int fd){
     }
     else if (times==2){
         if(msg==CONTROL_RJ(1) || msg==CONTROL_RJ(0)
-        || msg==CONTROL_RR(1) || msg==CONTROL_RR(1)){
+        || msg==CONTROL_RR(1) || msg==CONTROL_RR(0)){
           times++;
           printf("C- 0x%c\n",msg);
           control = msg;

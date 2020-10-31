@@ -2,9 +2,9 @@
 
 
 int main(int argc, char **argv){
-
+    set_alarm();
     applicationLayer app;
-
+    char * port;
     //parses arguments
     if (argc != 5){
         printf("Usage: ./application -p <port> -r/-w <file_path>\n");
@@ -27,7 +27,7 @@ int main(int argc, char **argv){
                         return -1;
                     }
                     else{
-                        app.fileDescriptor = argv[2];
+                        port = argv[2];
                     }
                     break;
                 case 3:
@@ -45,16 +45,43 @@ int main(int argc, char **argv){
         }
     }
 
-    llopen(app.fileDescriptor, app.status);
-
-    if(app.status== TRANSMITTER){
-        
-          
-
-
-
+    if(app.fileDescriptor= llopen(port, app.status)){
+        printf("Error opening file descriptor\n");
+        exit(1);
 
     }
+    
+    if(app.status== TRANSMITTER){
+        
+        
+
+        do{
+            alarm(3);
+
+
+            sendMessage(app.fileDescriptor,SET);
+
+
+            setAlarmFlag(0);
+
+
+            while(!getAlarmFlag()){
+
+                if(!receiveMessage(app.fileDescriptor,UA)){
+                    break;
+                }
+            }
+            
+            if(getAlarmFlag())
+                printf("Timed Out\n");
+
+
+        }while(getAlarmCounter()<3);
+          
+        setAlarmCounter(0);
+    }
+
+    
     else if(app.status==RECEIVER){
 
         if(!receiveMessage(app.fileDescriptor,SET)){
@@ -76,7 +103,11 @@ int main(int argc, char **argv){
 
     }
 
-    llclose(app.fileDescriptor,app.status);
+    if(llclose(app.fileDescriptor,app.status)){
+        printf("Error closing file descriptor");
+        exit(1);
+
+    }
 
 
 

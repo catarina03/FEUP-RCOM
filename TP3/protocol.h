@@ -21,4 +21,10 @@ int receiveMessage(int fd, unsigned char msg);
 
 void setAlarm();
 
+int getAlarmFlag();
+
+int getAlarmCounter();
+
+void setAlarmFlag(int flag);
+
 
