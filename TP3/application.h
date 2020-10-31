@@ -1,4 +1,5 @@
 #include "macros.h"
+#include "protocol.h"
 
 
 typedef struct{

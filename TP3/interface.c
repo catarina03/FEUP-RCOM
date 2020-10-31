@@ -47,5 +47,38 @@ int main(int argc, char **argv){
 
     llopen(app.fileDescriptor, app.status);
 
+    if(app.status== TRANSMITTER){
+        
+          
+
+
+
+
+    }
+    else if(app.status==RECEIVER){
+
+        if(!receiveMessage(app.fileDescriptor,SET)){
+            sendMessage(app.fileDescriptor,UA);
+        }
+        else{
+            printf("Did not UA. exited program\n ");
+            llclose(app.fileDescriptor,app.status);
+            exit(-1);
+        }
+
+        
+        char buff[256];
+        if(llread(app.fileDescriptor,buff)==-1){
+            printf("Error on readings");
+        }
+
+        
+
+    }
+
+    llclose(app.fileDescriptor,app.status);
+
+
+
     return 0;
 }

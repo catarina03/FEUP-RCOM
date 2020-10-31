@@ -11,28 +11,9 @@ static int alarmCounter=0;
 static int fd;
 
 
-void sendMessage(int fd, unsigned char msg) {
-  unsigned char mesh[5];
-  mesh[0]=FLAG;
-  mesh[1]=A;
-  mesh[2]=msg;
-  mesh[3]=mesh[1]^mesh[2];
-  mesh[4]=FLAG;
-  write(fd,mesh,5);
-}
 
-void sigalrm_handler(int signo){
-  
-  alarmFlag=0;
-  alarmCounter++;
-  
-	if(alarmCounter<3){
-    alarm(3);
-    sendMessage(fd, SET);
-    printf("Sending message\n");
-  }
 
-}
+
 
 void receiveResponse(int *part, unsigned char *msg) {
   

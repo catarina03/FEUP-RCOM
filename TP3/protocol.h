@@ -12,3 +12,13 @@ struct linkLayer {
 };
 
 unsigned char readSupervisionFrame(int fd);
+
+void sendMessage(int fd, unsigned char msg);
+
+
+int receiveMessage(int fd, unsigned char msg);
+
+
+void setAlarm();
+
+

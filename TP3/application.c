@@ -39,7 +39,10 @@ int openWriter(char *port){
     buildProtectionFrame(&start, SET);
 
     fd = open(port, O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(port); exit(-1); }
+    if (fd <0) {
+        perror(port); 
+        exit(-1); 
+    }
 
     //Sending supervision frame
     sendMessage(fd, SET);
@@ -151,11 +154,11 @@ int llread(int fd, char* buffer){
         bcc2^=frame.data[i];
     }
     if(frame.bcc1!=(frame.address ^frame.control) || frame.bcc2!=bcc2){
-        //enviar resposta negativa
+        sendMessage(fd, CONTROL_RJ(currFrame));
         return -1;
     }
     else{
-        //enviar resposta positiva
+        sendMessage(fd, CONTROL_RR(currFrame));
         if(currFrame)
             currFrame--;
         else

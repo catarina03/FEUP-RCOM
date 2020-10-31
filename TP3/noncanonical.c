@@ -5,64 +5,6 @@
 static int STOP=FALSE;
 
 
-int receiveMessage(int fd, unsigned char msg) {
-  int part=0;
-  unsigned char rcv_msg;
-  printf("Reading...\n");
-  while (part!=5) {
-
-    read(fd, &rcv_msg,1);
-    printf("byte: %d\n", rcv_msg);
-    switch (part) {
-      case 0:
-        if(rcv_msg==FLAG){
-          part=1;
-          printf("FLAG: %c\n",rcv_msg);
-        }
-        break;
-      case 1:
-        if(rcv_msg==A){
-          part=2;
-          printf("A: %c\n",rcv_msg);
-        }
-        else {
-          if(rcv_msg==FLAG)
-            part=1;
-          else
-            part=0;
-        }
-        break;
-      case 2:
-        if(rcv_msg==msg){
-          part=3;
-          printf("Control: %c\n",rcv_msg);
-        }
-        else
-          part=0;
-        break;
-      case 3:
-        if(rcv_msg==(A^msg)){
-          part=4;
-          printf("Control BCC: %c\n",rcv_msg);
-        }
-        else
-          part=0;
-        break;
-      case 4:
-        if(rcv_msg==FLAG) {
-          part = 5;
-          printf("FINAL FLAG: %c\nReceived Control\n",rcv_msg);
-        }
-        else
-          part=0;
-        break;
-      default:
-        break;
-    }
-  }
-  
-  return TRUE;
-}
 
 
 /*
@@ -118,16 +60,6 @@ int recieveMessage( unsigned char msg_type) {
     else return FALSE;
 }*/
 
-
-void resendMessage(int fd, unsigned char msg) {
-  unsigned char mesh[5];
-  mesh[0]=FLAG;
-  mesh[1]=A;
-  mesh[2]=msg;
-  mesh[3]=mesh[1]^mesh[2];
-  mesh[4]=FLAG;
-  write(fd,mesh,5);
-}
 
 
 /*
