@@ -10,97 +10,104 @@ static int alarmCounter=0;
 
 static int STOP=FALSE;
 
+struct termios oldtio;
+
 
 int openReader(char *port){
 
-    /*
-    Open serial port device for reading and writing and not as controlling tty
-    because we don't want to get killed if linenoise sends CTRL-C.
-    */
-    fd = open(port, O_RDWR | O_NOCTTY );
-    if (fd <0) {
-        perror(port); 
-        exit(-1); 
+    //Builds supervision frame
+    supervisionFrame reply;
+    buildSupervisionFrame(&reply, UA);
+
+    if(receiveSupervisionFrame(fd,SET) >= 0){
+        sendSupervisionFrame(fd,reply.control, reply.bcc);
+    }
+    else{
+        printf("Did not UA. exited program\n ");
+        llclose(fd, RECEIVER);
+        exit(-1);
     }
 
-    if(receiveMessage(fd,SET)){
-        printf("Receiving SET\n");
-        resendMessage(fd,UA); //Recieving 
-    }
-
-    
-
-
-
-    return 0;
+    printf("Sent SET frame and received UA successfully\n");
+    return TRUE;  
 }
-
-
-int closeWriter(int fd){
-
-    //to be
-
-
-    return 1;
-}
-
-
-
-int closeReader(int fd){
-
-
-
-    //to be
-
-
-    return 1;
-}
-
 
 
 int openWriter(char *port){
 
     //Builds supervision frame
     supervisionFrame start;
-    buildProtectionFrame(&start, SET);
-
-    fd = open(port, O_RDWR | O_NOCTTY );
-    if (fd <0) {
-        perror(port); 
-        exit(-1); 
-    }
-
-    //Sending supervision frame
-    sendMessage(fd, SET);
-
-    int stop=0;
-
-    int times=0;
-    while(getAlarmCounter() < 3 && !stop){
-        alarm(3);  
-      
-      while (!stop && !getAlarmFlag()){
-        stop=receiveMessage(fd,UA);
-      }
-      if(getAlarmFlag()){
-        printf("Timed-out\n");
-      }
-    }
-
-
+    buildSupervisionFrame(&start, SET);
+    
+    sendSupervisionFrame(fd, start.control, start.bcc);
+    
+    /*
+    do{
+        alarm(3);
+        setAlarmFlag(0);
+        while(!getAlarmFlag()){
+            if(!receiveSupervisionFrame(fd, UA)){
+                break;
+            }
+        }
+        if(getAlarmFlag()){
+            printf("Timed Out\n");
+        } 
+    }while(getAlarmCounter()<3 && STOP==FALSE);
     setAlarmCounter(0);
+    */
+
+    receiveSupervisionFrame(fd, UA);
 
 
-    if(getAlarmCounter()==3){
-        printf("Gave up\n");
-        return -1;
-    }
 
-    return 0;
+    return TRUE;
 }
 
 
-void buildProtectionFrame(supervisionFrame *frame, unsigned char controlByte){
+int closeWriter(int fd){
+
+    printf("Closing writer...\n");
+
+    supervisionFrame close;
+    buildSupervisionFrame(&close, DISC);
+
+    sendSupervisionFrame(fd, close.control, close.bcc);
+
+    printf("sent DISC frame\n");
+
+    supervisionFrame closeUA;
+    buildSupervisionFrame(&closeUA, UA);
+
+    if (receiveSupervisionFrame(fd, DISC)){
+        printf("received DISC frame\n");
+        sendSupervisionFrame(fd, closeUA.control, closeUA.bcc);
+    }
+
+
+    return TRUE;
+}
+
+
+int closeReader(int fd){
+
+    printf("Closing reader...\n");
+    if (receiveSupervisionFrame(fd, DISC) < 0) return -1;
+
+    //Builds supervision frame
+    supervisionFrame close;
+    buildSupervisionFrame(&close, DISC);
+
+    sendSupervisionFrame(fd, close.control, close.bcc);
+
+    if (receiveSupervisionFrame(fd, UA) < 0) return -1;
+
+
+    return 1;
+}
+
+
+void buildSupervisionFrame(supervisionFrame *frame, unsigned char controlByte){
   frame->flag = FLAG;
   frame->address = A;
   frame->control = controlByte;
@@ -109,6 +116,44 @@ void buildProtectionFrame(supervisionFrame *frame, unsigned char controlByte){
 
 
 int llopen(char *port, int type){
+    struct termios newtio;
+
+    // Open serial port device for reading and writing and not as controlling tty
+    // because we don't want to get killed if linenoise sends CTRL-C.
+    fd = open(port, O_RDWR | O_NOCTTY );
+    if (fd <0) {
+        perror(port); 
+        exit(-1); 
+    }
+
+    if ( tcgetattr(fd,&oldtio) == -1) { //save current port settings
+      perror("tcgetattr");
+      exit(-1);
+    }
+
+    bzero(&newtio, sizeof(newtio));
+    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_iflag = IGNPAR;
+    newtio.c_oflag = 0;
+
+    //set input mode (non-canonical, no echo,...)
+    newtio.c_lflag = 0;
+
+    newtio.c_cc[VTIME]    = 0;   // inter-character timer unused 
+    newtio.c_cc[VMIN]     = 1;   // blocking read until 5 chars received
+
+    // VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
+    // leitura do(s) pr�ximo(s) caracter(es)
+
+    tcflush(fd, TCIOFLUSH);
+
+    if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
+      perror("tcsetattr");
+      exit(-1);
+    }
+
+    printf("New termios structure set\n");
+
 
     if (type == RECEIVER){
         return openReader(port);
@@ -117,13 +162,14 @@ int llopen(char *port, int type){
         return openWriter(port);
     }
 
-    return -1;
+    return TRUE;
 }
 
 
 
 
 int llclose(int fd, int type){
+
 
     if (type == RECEIVER){
         return closeReader(fd);
@@ -132,8 +178,12 @@ int llclose(int fd, int type){
         return closeWriter(fd);
     }
 
+    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+        perror("tcsetattr");
+        exit(-1);
+    }
 
-    return -1;
+    return 0;
 }
 
 

@@ -1,6 +1,10 @@
 /*Non-Canonical Input Processing*/
 
-#include "macros.h"
+//#include "macros.h"
+#include "application.h"
+
+
+/*
 
 static int STOP=FALSE;
 
@@ -11,12 +15,23 @@ static int alarmCounter=0;
 static int fd;
 
 
+void sendSupervisionFrame(int fd, supervisionFrame *frame) {
+  unsigned char msg[5];
+  msg[0] = frame->flag;
+  msg[1] = frame->address;
+  msg[2] = frame->control;
+  msg[3] = frame->bcc;
+  msg[4] = frame->flag;
+  if (write(fd,msg,5) == -1) {
+    perror("Supervision frame write failure!\n");
+  }
+}
 
 
 
-
-void receiveResponse(int *part, unsigned char *msg) {
-  
+void receiveSupervisionFrame(int *part, unsigned char *msg, unsigned char *control) {
+  printf("Part: %d\n", *part);
+  printf("msg: %c\n", *msg);
   switch (*part)
   {
   case 0:
@@ -39,7 +54,7 @@ void receiveResponse(int *part, unsigned char *msg) {
     }
     break;
   case 2:
-    if(*msg==UA){
+    if(*msg==*control){
       *part=3;
       printf("UA: %c\n",*msg);
     }
@@ -66,6 +81,12 @@ void receiveResponse(int *part, unsigned char *msg) {
     break;
   }
 }
+
+*/
+
+
+
+
 
 /*void receiveResponse(int *part, unsigned char msg) {
   

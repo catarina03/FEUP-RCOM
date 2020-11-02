@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# rm read_obj
+rm read_obj
 
 #clear
 

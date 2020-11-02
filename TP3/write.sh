@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# rm write_obj
+rm write_obj
 
 #clear
 

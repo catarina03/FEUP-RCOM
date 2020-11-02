@@ -21,7 +21,7 @@ typedef struct{
     unsigned char bcc;   
 }supervisionFrame;
 
-void buildProtectionFrame(supervisionFrame *frame, unsigned char controlByte);
+void buildSupervisionFrame(supervisionFrame *frame, unsigned char controlByte);
 
 int llopen(char *port, int type);
 

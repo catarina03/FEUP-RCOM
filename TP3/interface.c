@@ -2,7 +2,7 @@
 
 
 int main(int argc, char **argv){
-    set_alarm();
+    //set_alarm();
     applicationLayer app;
     char * port;
     //parses arguments
@@ -33,7 +33,7 @@ int main(int argc, char **argv){
                 case 3:
                     if (strcmp(argv[3], "-r")!=0 && strcmp(argv[3], "-w")!=0){
                         printf("Usage: ./application -p <port> -r/-w <file_path>\n");
-                        printf("tag -r/-w is missing", argv[3]);
+                        printf("tag -r/-w is missing\n");
                         return -1;
                     }
                     else{
@@ -45,11 +45,12 @@ int main(int argc, char **argv){
         }
     }
 
-    if(app.fileDescriptor= llopen(port, app.status)){
+    if(llopen(port, app.status) < 0){
         printf("Error opening file descriptor\n");
         exit(1);
-
     }
+
+    /*
     
     if(app.status== TRANSMITTER){
         
@@ -102,6 +103,11 @@ int main(int argc, char **argv){
         
 
     }
+
+
+    */
+
+    printf("About to close\n");
 
     if(llclose(app.fileDescriptor,app.status)){
         printf("Error closing file descriptor");
