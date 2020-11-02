@@ -103,7 +103,50 @@ int closeReader(int fd){
     if (receiveSupervisionFrame(fd, UA) < 0) return -1;
 
 
-    return 1;
+    return 0;
+}
+
+
+unsigned char *buildControlFrame(char ctrl_field, unsigned file_size, char* file_name, unsigned int L1, unsigned int L2, unsigned int frame_size) {
+    unsigned char packet[packet_size];
+
+    frame[0] = ctrl_field;
+    frame[1] = FILE_SIZE;
+    frame[2] = L1;
+    memcpy(&frame[3], &file_size, L1);
+    frame[3+L1] = FILE_NAME;
+    frame[4+L1] = L2;
+    memcpy(&frame[5+L1], file_name, L2);
+
+    //return llwrite(fd, packet, packet_size);
+}
+
+
+int transmitterApp(char *path){
+    int file_fd;
+    struct stat file_stat;
+
+    if (stat(path, &file_stat)<0){
+        perror("Error getting file information.");
+        return -1;
+    }
+
+    if ((file_fd = open(path, O_RDONLY)) < 0){
+        perror("Error opening file.");
+        return -1;
+    }
+
+    //Generates and sends control frame
+    unsigned int L1 = sizeof(file_stat.st_size);  //Size of file
+    unsigned int L2 = strlen(*path);  //Length of file name
+    unsigned int frame_size = 5 + L1 + L2;
+    unsigned char controlFrame[frame_size] = buildControlFrame(START_FRAME, file_stat.st_size, path, L1, L2, frame_size)
+
+    llwrite(file_fd, controlFrame, frame_size);
+
+
+
+
 }
 
 

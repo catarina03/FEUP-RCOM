@@ -33,5 +33,8 @@
 
 #define STOP_AND_WAIT 50
 
+#define START_FRAME 0x02
+#define STOP_FRAME 0x03
+
 #define TRANSMITTER 1234
 #define RECEIVER 4321

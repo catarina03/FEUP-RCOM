@@ -4,7 +4,7 @@
 int main(int argc, char **argv){
     //set_alarm();
     applicationLayer app;
-    char * port;
+   
     //parses arguments
     if (argc != 5){
         printf("Usage: ./application -p <port> -r/-w <file_path>\n");
@@ -27,7 +27,7 @@ int main(int argc, char **argv){
                         return -1;
                     }
                     else{
-                        port = argv[2];
+                        app.port = argv[2];
                     }
                     break;
                 case 3:
@@ -37,25 +37,32 @@ int main(int argc, char **argv){
                         return -1;
                     }
                     else{
-                        if (strcmp(argv[3], "-r") == 0) app.status = RECEIVER;
-                        if (strcmp(argv[3], "-w") == 0) app.status = TRANSMITTER;
+                        if (strcmp(argv[3], "-r") == 0){
+                            app.status = RECEIVER;
+                            app.path = argv[4];
+                        }
+                        if (strcmp(argv[3], "-w") == 0){
+                            app.status = TRANSMITTER;
+                            app.path = argv[4];
+                        } 
                     }
                     break;
             }
         }
     }
 
-    if(llopen(port, app.status) < 0){
+    if(llopen(app.port, app.status) < 0){
         printf("Error opening file descriptor\n");
         exit(1);
     }
 
-    /*
+
     
     if(app.status== TRANSMITTER){
+        transmitterApp(app.path);
         
         
-
+/*
         do{
             alarm(3);
 
@@ -68,24 +75,30 @@ int main(int argc, char **argv){
 
             while(!getAlarmFlag()){
 
-                if(!receiveMessage(app.fileDescriptor,UA)){
+                if(!receiveSupervisionFrame(app.fileDescriptor,UA)){
                     break;
                 }
             }
             
-            if(getAlarmFlag())
+            if(getAlarmFlag()) 
                 printf("Timed Out\n");
 
 
         }while(getAlarmCounter()<3);
           
         setAlarmCounter(0);
+
+*/
+
     }
 
+
+
+/*
     
     else if(app.status==RECEIVER){
 
-        if(!receiveMessage(app.fileDescriptor,SET)){
+        if(!receiveSupervisionFrame(app.fileDescriptor,SET)){
             sendMessage(app.fileDescriptor,UA);
         }
         else{
