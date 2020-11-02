@@ -62,6 +62,24 @@ int main(int argc, char **argv){
         transmitterApp(app.path);
         
         
+
+
+    }
+
+
+
+
+    
+    else if(app.status==RECEIVER){
+
+
+
+
+
+    }
+
+
+
 /*
         do{
             alarm(3);
@@ -90,14 +108,10 @@ int main(int argc, char **argv){
 
 */
 
-    }
 
 
 
 /*
-    
-    else if(app.status==RECEIVER){
-
         if(!receiveSupervisionFrame(app.fileDescriptor,SET)){
             sendMessage(app.fileDescriptor,UA);
         }

@@ -33,8 +33,13 @@
 
 #define STOP_AND_WAIT 50
 
+#define DATA 0x01
 #define START_FRAME 0x02
 #define STOP_FRAME 0x03
+
+
+#define FILE_SIZE 0x01;
+#define FILE_NAME 0x02;
 
 #define TRANSMITTER 1234
 #define RECEIVER 4321

@@ -16,11 +16,13 @@ struct termios oldtio;
 int openReader(char *port){
 
     //Builds supervision frame
-    supervisionFrame reply;
-    buildSupervisionFrame(&reply, UA);
+    //supervisionFrame reply;
+    //buildSupervisionFrame(&reply, UA);
 
     if(receiveSupervisionFrame(fd,SET) >= 0){
-        sendSupervisionFrame(fd,reply.control, reply.bcc);
+        //sendSupervisionFrame(fd,reply.control, reply.bcc);
+        sendMessage(fd,UA);
+        return TRUE;
     }
     else{
         printf("Did not UA. exited program\n ");
@@ -29,25 +31,25 @@ int openReader(char *port){
     }
 
     printf("Sent SET frame and received UA successfully\n");
-    return TRUE;  
+    return FALSE;  
 }
 
 
 int openWriter(char *port){
 
     //Builds supervision frame
-    supervisionFrame start;
-    buildSupervisionFrame(&start, SET);
+    //supervisionFrame start;
+    //buildSupervisionFrame(&start, SET);
     
-    sendSupervisionFrame(fd, start.control, start.bcc);
+    //sendSupervisionFrame(fd, start.control, start.bcc);
     
-    /*
+    
     do{
         alarm(3);
         setAlarmFlag(0);
         while(!getAlarmFlag()){
-            if(!receiveSupervisionFrame(fd, UA)){
-                break;
+            if((STOP=receiveSupervisionFrame(fd, UA))==TRUE){
+               return TRUE;
             }
         }
         if(getAlarmFlag()){
@@ -55,13 +57,12 @@ int openWriter(char *port){
         } 
     }while(getAlarmCounter()<3 && STOP==FALSE);
     setAlarmCounter(0);
-    */
-
-    receiveSupervisionFrame(fd, UA);
+    
 
 
 
-    return TRUE;
+
+    return FALSE;
 }
 
 
@@ -69,19 +70,22 @@ int closeWriter(int fd){
 
     printf("Closing writer...\n");
 
-    supervisionFrame close;
-    buildSupervisionFrame(&close, DISC);
+    //supervisionFrame close;
+    //buildSupervisionFrame(&close, DISC);
 
-    sendSupervisionFrame(fd, close.control, close.bcc);
+    //sendSupervisionFrame(fd, close.control, close.bcc);
+
+    sendMessage(fd,DISC);
 
     printf("sent DISC frame\n");
 
-    supervisionFrame closeUA;
-    buildSupervisionFrame(&closeUA, UA);
+    // closeUA;
+    //buildSupervisionFrame(&closeUA, UA);
 
     if (receiveSupervisionFrame(fd, DISC)){
         printf("received DISC frame\n");
-        sendSupervisionFrame(fd, closeUA.control, closeUA.bcc);
+        sendMessage(fd,UA);
+        //sendSupervisionFrame(fd, closeUA.control, closeUA.bcc);
     }
 
 
@@ -95,10 +99,12 @@ int closeReader(int fd){
     if (receiveSupervisionFrame(fd, DISC) < 0) return -1;
 
     //Builds supervision frame
-    supervisionFrame close;
-    buildSupervisionFrame(&close, DISC);
+    //supervisionFrame close;
+    //buildSupervisionFrame(&close, DISC);
 
-    sendSupervisionFrame(fd, close.control, close.bcc);
+    //sendSupervisionFrame(fd, close.control, close.bcc);
+
+    sendMessage(fd,DISC);
 
     if (receiveSupervisionFrame(fd, UA) < 0) return -1;
 
@@ -107,19 +113,72 @@ int closeReader(int fd){
 }
 
 
-unsigned char *buildControlFrame(char ctrl_field, unsigned file_size, char* file_name, unsigned int L1, unsigned int L2, unsigned int frame_size) {
-    unsigned char packet[packet_size];
+unsigned char *buildControlFrame(char ctrlField, unsigned fileSize, char* fileName, unsigned int L1, unsigned int L2, unsigned int frameSize) {
+    unsigned char frame[frameSize];
 
-    frame[0] = ctrl_field;
+    frame[0] = ctrlField;
     frame[1] = FILE_SIZE;
     frame[2] = L1;
-    memcpy(&frame[3], &file_size, L1);
+    memcpy(&frame[3], &fileSize, L1);
     frame[3+L1] = FILE_NAME;
     frame[4+L1] = L2;
-    memcpy(&frame[5+L1], file_name, L2);
+    memcpy(&frame[5+L1], fileName, L2);
 
-    //return llwrite(fd, packet, packet_size);
+    return frame;
 }
+
+
+
+
+
+unsigned char *parseControlFrame(unsigned char *raw_bytes, int size) {
+  control_packet_t packet;
+  memset(&packet, 0, sizeof(control_packet_t));
+  packet.control = raw_bytes[0];
+
+  char *name;
+  int namesize = 0;
+
+  unsigned char* filesize;
+  int filesize_size = 0;
+
+  for (int i = 1; i < size; i++) {
+    if (raw_bytes[i] == FILE_SIZE) {
+      int length = raw_bytes[++i];
+      int offset = i + length;
+      filesize = (unsigned char*) malloc (length);
+      for (int k = 0; i < offset; k++) {
+        filesize[k] = raw_bytes[++i];
+        filesize_size++;
+      }
+      continue;
+    }
+    if (raw_bytes[i] == FILE_NAME) {
+      int length = raw_bytes[++i];
+      name = (unsigned char *) malloc (length);
+      int offset = i + length;
+      for (int j = 0; i < offset;) {
+        name[j++] = raw_bytes[++i];
+        namesize++;
+      }
+      continue;
+    }
+  }
+
+  packet.file_name = (unsigned char*) malloc (namesize + 1);
+  memcpy(packet.file_name, name, namesize);
+  packet.file_name[namesize] = '\0';
+  free(name);
+
+  packet.filesize_size = filesize_size;
+  packet.file_size = (unsigned char*) malloc (filesize_size);
+  memcpy(packet.file_size, filesize, filesize_size);
+  free(filesize);
+   
+  return packet;
+}
+
+
 
 
 int transmitterApp(char *path){
@@ -136,26 +195,156 @@ int transmitterApp(char *path){
         return -1;
     }
 
-    //Generates and sends control frame
+    //Generates and sends START control frame
     unsigned int L1 = sizeof(file_stat.st_size);  //Size of file
     unsigned int L2 = strlen(*path);  //Length of file name
     unsigned int frame_size = 5 + L1 + L2;
     unsigned char controlFrame[frame_size] = buildControlFrame(START_FRAME, file_stat.st_size, path, L1, L2, frame_size)
 
-    llwrite(file_fd, controlFrame, frame_size);
+    if(llwrite(file_fd, controlFrame, frame_size) < 0){
+        perror("Error sending START packet.");
+        return -1;
+    }
+
+    
+    //Generates and sends data packets
+    char buf[MAX_SIZE];
+    unsigned int bytes_to_send, no_bytes;
+    unsigned int sequenceNumber = 0;
+
+    while(no_bytes = read(file_fd, buf, MAX_SIZE)){
+        unsigned char data[MAX_SIZE];
+        data[0] = DATA;
+        data[1] = sequenceNumber % 255;
+        data[2] = no_bytes / 256;
+        data[3] = no_bytes % 256;
+        memcpy(&data[4], buf, no_bytes);
+
+        if((no_bytes + 4) < MAX_SIZE){
+            bytes_to_send = no_bytes + 4;
+        }
+        else{
+            bytes_to_send = MAX_SIZE;
+        }
+
+        if(llwrite(fd, data, bytes_to_send)){
+            perror("llwrite failed");
+            return -1;
+        }
+
+        sequenceNumber++;
+    }
+
+    printf("Number of data packets sent: %d\n", sequenceNumber);
 
 
+    //Generates and sends END control frame
+    unsigned char endControlFrame[frame_size] = buildControlFrame(END_FRAME, file_stat.st_size, path, L1, L2, frame_size)
+
+    if(llwrite(file_fd, controlFrame, frame_size) < 0){
+        perror("Error sending START packet.");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+
+int recieverApp(char *path){
+
+    /* opens transmiter file descriptor on second layer */
+    int receiver_fd = llopen(path, RECEIVER);
+    /* in case there's an error oppening the port */
+    if (receiver_fd <0>) {
+        exit(-1);
+    }
+
+
+    char buffer[1024];
+    int size;
+
+    int state = 0;
+
+    // * START Control Packet
+    while (state == 0) {
+        memset(buffer, 0, sizeof(buffer));
+        while ((size = llread(receiver_fd, buffer)) == ERROR) {
+        printf("Error reading\n");
+        llclose(receiver_fd, RECEIVER);
+        return ERROR;
+        }
+        unsigned char *frame
+
+        file.size = array_to_number(packet.file_size, packet.filesize_size);
+        file.name = packet.file_name;
+
+        print_control_packet(&packet);
+        if (packet.control == START) {
+        state = 1;
+        }
+    }
+
+    // * DATA Packets
+    unsigned char *full_message = (unsigned char*) malloc (file.size);
+    int index = 0;
+    int current_sequence = -1;
+
+    while (state == 1) {
+        memset(buffer, 0, sizeof(buffer));
+        while ((size = llread(receiver_fd, buffer)) == ERROR) {
+        printf("Error reading\n");
+        }
+        if (buffer[0] == STOP) {
+        state = 2;
+        break;
+        }
+        data_packet_t data = parse_data_packet(buffer, size);
+        
+        if (data.control != DATA) continue;
+        
+        print_data_packet(&data, FALSE);
+        join_file(full_message, data.data, data.data_field_size, index);
+
+        // * caso o numero de sequencia seja diferente do anterior deve atualizar o index
+        if (current_sequence != data.sequence) {
+        current_sequence = data.sequence;
+        index += data.data_field_size;
+        }
+    }
+
+    // * STOP Control Packet
+    if (state == 2) {
+        control_packet_t packet = parse_control_packet(buffer, size);
+        print_control_packet(&packet);
+
+        char* name = (char*) malloc ((strlen(file.name) + 7) * sizeof(char));
+        sprintf(name, "cloned_%s", file.name);
+        write_file(name, full_message, file.size);
+        printf("Received file\n");
+    }
+
+    /* resets and closes the receiver fd for the port */
+    llclose(receiver_fd, RECEIVER);
+
+    return 0;
 
 
 }
 
 
+
+
+
+
+/*
 void buildSupervisionFrame(supervisionFrame *frame, unsigned char controlByte){
   frame->flag = FLAG;
   frame->address = A;
   frame->control = controlByte;
   frame->bcc = frame->address ^ frame->control;
-}
+}*/
 
 
 int llopen(char *port, int type){
@@ -205,7 +394,7 @@ int llopen(char *port, int type){
         return openWriter(port);
     }
 
-    return TRUE;
+    return -1;
 }
 
 
@@ -226,7 +415,7 @@ int llclose(int fd, int type){
         exit(-1);
     }
 
-    return 0;
+    return -1;
 }
 
 

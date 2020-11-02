@@ -41,7 +41,7 @@ void setAlarm(){
 
 
 
-unsigned char receiveSupervisionFrame(int fd, unsigned char control) {
+int receiveSupervisionFrame(int fd, unsigned char control) {
   int times=0;
   unsigned char msg;
   printf("Reading response...\n");
@@ -69,7 +69,7 @@ unsigned char receiveSupervisionFrame(int fd, unsigned char control) {
         if(msg==control){
           times++;
           printf("C- 0x%02x\n",msg);
-          //control = msg;
+          control = msg;
         }
         else
           times=0;
@@ -86,12 +86,13 @@ unsigned char receiveSupervisionFrame(int fd, unsigned char control) {
         if(msg==FLAG) {
           times++;
           printf("SECOND FLAG- 0x%02x\n",msg);
+          return TRUE;
         }
         else
           times=0;
     }
   }
-  return control;
+  return FALSE;
 }
 
 
