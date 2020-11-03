@@ -60,6 +60,7 @@ int main(int argc, char **argv){
     
     if(app.status== TRANSMITTER){
         transmitterApp(app.path,app.fileDescriptor);
+
         
         
 
@@ -71,7 +72,11 @@ int main(int argc, char **argv){
 
     
     else if(app.status==RECEIVER){
-        receiverApp(app.fileDescriptor);
+        if(receiverApp(app.fileDescriptor)<0){
+            perror("Error on receiver\n");
+            exit(1);
+        }
+
 
 
 

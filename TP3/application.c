@@ -117,11 +117,11 @@ int closeReader(int fd){
 unsigned char *buildControlFrame(char ctrlField, unsigned fileSize, char* fileName, unsigned int L1, unsigned int L2, unsigned int frameSize) {
     unsigned char *frame=(unsigned char*) malloc(sizeof(unsigned char)*frameSize);
 
-    frame[0] = ctrlField;
+    frame[0] = (unsigned char*)ctrlField;
     frame[1] = FILE_SIZE;
     frame[2] = L1;
     memcpy(&frame[3], &fileSize, L1);
-    frame[3+L1] = FILE_NAME;
+    frame[3+L1] = (unsigned char*) FILE_NAME;
     frame[4+L1] = L2;
     memcpy(&frame[5+L1], fileName, L2);
 
@@ -143,21 +143,21 @@ controlFrame parseControlFrame(unsigned char *rawBytes, int size) {
   int len;
   for (int i = 1; i < size; i++) {
     if (rawBytes[i] == FILE_SIZE) {
-         printf("Parsing file size\n");
+         //printf("Parsing file size\n");
       len = rawBytes[++i];
-      printf("len %d\n",len);
+      //printf("len %d\n",len);
       frame.fileSize = (unsigned char*) malloc(len);
 
       for (int j = 0; j <len;j++) {
         frame.fileSize[j] = rawBytes[++i];
-        printf("j %d\n",j);
+        //printf("j %d\n",j);
         
       }
       frame.filesizeSize=len;
       
     }
     else if (rawBytes[i] == FILE_NAME) {
-        printf("Parsing file name\n ");
+        //printf("Parsing file name\n ");
       len = rawBytes[++i];
       
       frame.fileName = (unsigned char *) malloc (len+1);
@@ -189,14 +189,14 @@ int transmitterApp(char *path, int fd){
     printf("Before lstat\n");
 
     if (lstat(path, &fileStat)<0){
-        perror("Error getting file information.");
+        perror("Error getting file information.\n");
         return -1;
     }
 
     printf("lstat successful\n");
 
     if ((fileFd = open(path, O_RDONLY)) < 0){
-        perror("Error opening file.");
+        perror("Error opening file.\n");
         return -1;
     }
     
@@ -216,7 +216,7 @@ int transmitterApp(char *path, int fd){
     printf("built control frame\n");
 
     if(llwrite(fd, controlFrame, frameSize) < 0){
-        perror("Error sending START frame.");
+        perror("Error sending START frame.\n");
         return -1;
     }
 
@@ -229,7 +229,7 @@ int transmitterApp(char *path, int fd){
     unsigned int sequenceNumber = 0;
 
     while(noBytes = read(fileFd, buf, MAX_SIZE)){
-        unsigned char data[MAX_SIZE];
+        unsigned char *data=(unsigned char *)malloc(sizeof(unsigned char)*MAX_SIZE);
         data[0] = DATA;
         data[1] = sequenceNumber % 255;
         data[2] = noBytes / 256;
@@ -256,8 +256,8 @@ int transmitterApp(char *path, int fd){
     //Generates and sends END control frame
     unsigned char *endControlFrame = buildControlFrame(END_FRAME, fileStat.st_size, path, L1, L2, frameSize);
     printf("frame size- %d\n",frameSize);
-    if(llwrite(fileFd, endControlFrame, frameSize) < 0){
-        perror("Error sending END frame.");
+    if(llwrite(fd, endControlFrame, frameSize) < 0){
+        perror("Error sending END frame.\n");
         return -1;
     }
 
@@ -394,8 +394,8 @@ int receiverApp(int fd){
         controlFrame frame = parseControlFrame(buff, size);
         printControlFrame(frame);
 
-        char* name = (char*) malloc ((strlen(fileName) ) * sizeof(char));
-        //sprintf(name, "cloned_%s", fileName); //^ add +7 
+        char* name = (char*) malloc ((strlen(fileName) +7) * sizeof(char));
+        sprintf(name, "cloned_%s", fileName); //^ add +7 
         
         FILE *fl = fopen(name, "write_obj");
         if (fl != NULL) {
@@ -506,15 +506,12 @@ int llwrite(int fd, char* buffer,int length){
     printf("Message: %x\n", buffer);
 
     infoFrame frame = messageStuffing(buffer, length);
-
+    printf("raw data %x\n",frame.rawData);
     int size;
     printf("raw size %d\n",frame.rawSize);
     if((size=write(fd, frame.rawData, frame.rawSize))>=0)
         printf("Message sent\n");      
     else{
-        printf("raw data %x\n",frame.rawData);
-        //printf("raw size %d\n",frame.rawSize);
-        //printf("size- %d",size);
         printf("Message not sent\n");
         return -1;  
     }
@@ -539,13 +536,10 @@ int llwrite(int fd, char* buffer,int length){
 
 int llread(int fd, char* buffer){
 
-
-
     infoFrame frame = messageDestuffing(buffer,fd);
 
     printf("Exited destuffing\n");
-    if(frame.size>0)
-        memcpy(buffer, frame.data,frame.size);
+    memcpy(buffer, frame.data,frame.size);
     
     //printf("bcc1: %x - %x address ^ control\n",frame.bcc1,frame.address ^frame.control);
     if(frame.bcc1!=(frame.address ^frame.control) ){
@@ -563,9 +557,6 @@ int llread(int fd, char* buffer){
             
         return frame.size;
     }
-
-
-
 }
 
 
