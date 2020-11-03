@@ -33,9 +33,9 @@
 
 #define STOP_AND_WAIT 50
 
-#define DATA 0x01
-#define START_FRAME 0x02
-#define END_FRAME 0x03
+#define DATA 0x1
+#define START_FRAME 0x2
+#define END_FRAME 0x3
 
 #define PACKET_SIZE 4096
 

@@ -102,19 +102,19 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
 unsigned char readSupervisionFrame(int fd){
   int times=0;
   unsigned char msg, control;
-  printf("Reading response...\n");
+  //printf("Reading response...\n");
   while (times!=5) {
     read(fd,&msg,1);
     if(times==0){
         if(msg==FLAG){
           times++;
-          printf("FLAG- 0x%c\n",msg);
+          //printf("FLAG- 0x%x\n",msg);
         }
     }
     else if(times==1){
         if(msg==A){
           times++;
-          printf("A- 0x%c\n",msg);
+          //printf("A- 0x%x\n",msg);
         }
         else {
           if(msg==FLAG)
@@ -127,7 +127,7 @@ unsigned char readSupervisionFrame(int fd){
         if(msg==CONTROL_RJ(1) || msg==CONTROL_RJ(0)
         || msg==CONTROL_RR(1) || msg==CONTROL_RR(0)){
           times++;
-          printf("C- 0x%c\n",msg);
+          //printf("C- 0x%x\n",msg);
           control = msg;
         }
         else
@@ -136,7 +136,7 @@ unsigned char readSupervisionFrame(int fd){
     else if(times==3){
         if(msg==(A^control)){
           times++;
-          printf("BCC- 0x%c\n",msg);
+          //printf("BCC- 0x%x\n",msg);
         }
         else
           times=0;
@@ -144,7 +144,7 @@ unsigned char readSupervisionFrame(int fd){
     else if(times==4){
         if(msg==FLAG) {
           times++;
-          printf("SECOND FLAG- 0x%c\n",msg);
+          //printf("SECOND FLAG- 0x%x\n",msg);
         }
         else
           times=0;
