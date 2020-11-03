@@ -109,7 +109,7 @@ int closeReader(int fd){
         printf("Error recieving UA Frame...\n");   
         return -1;
     }
-
+    printf("Closed Reader\n");
     return 0;
 }
 
@@ -145,12 +145,12 @@ controlFrame parseControlFrame(unsigned char *rawBytes, int size) {
     if (rawBytes[i] == FILE_SIZE) {
          //printf("Parsing file size\n");
       len = rawBytes[++i];
-      //printf("len %d\n",len);
+      printf("len %d\n",len);
       frame.fileSize = (unsigned char*) malloc(len);
 
       for (int j = 0; j <len;j++) {
         frame.fileSize[j] = rawBytes[++i];
-        //printf("j %d\n",j);
+        printf("j %d - byte %x\n",j,rawBytes[i]);
         
       }
       frame.filesizeSize=len;
@@ -261,6 +261,7 @@ int transmitterApp(char *path, int fd){
         return -1;
     }
 
+
     return 0;
 }
 
@@ -268,7 +269,7 @@ int transmitterApp(char *path, int fd){
 void printControlFrame(controlFrame frame){
     printf("       CONTROL      \n");
     printf("Control: %x\n", frame.control);
-    printf("File size: %s\n", frame.fileSize);
+    printf("File size: %x\n", frame.fileSize);
     printf("File name: %s\n", frame.fileName);
     printf("Filesize size: %d\n", frame.filesizeSize);
     printf("Filename size: %d\n", frame.filenameSize);
@@ -368,7 +369,7 @@ int receiverApp(int fd){
             printf("Error reading\n");
         }
         if (buff[0] == END_FRAME) {
-            printf("Recieved End Frame");
+            printf("Recieved End Frame\n");
             state = 2;
             break;
         }
@@ -406,7 +407,7 @@ int receiverApp(int fd){
     }
 
     // resets and closes the receiver fd for the port
-    llclose(fd, RECEIVER);
+
 
     return 0;
 }
@@ -482,18 +483,18 @@ int llclose(int fd, int type){
 
 
     if (type == RECEIVER){
-        return closeReader(fd);
+        closeReader(fd);
     }
     else if(type == TRANSMITTER){
-        return closeWriter(fd);
+        closeWriter(fd);
     }
 
-    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+    if (tcsetattr(fd,TCSANOW,&oldtio) == -1) {
         perror("tcsetattr");
         exit(-1);
     }
 
-    return -1;
+    return 0;
 }
 
 
@@ -506,9 +507,9 @@ int llwrite(int fd, char* buffer,int length){
     printf("Message: %x\n", buffer);
 
     infoFrame frame = messageStuffing(buffer, length);
-    printf("raw data %x\n",frame.rawData);
+    //printf("raw data %x\n",frame.rawData);
     int size;
-    printf("raw size %d\n",frame.rawSize);
+    //printf("raw size %d\n",frame.rawSize);
     if((size=write(fd, frame.rawData, frame.rawSize))>=0)
         printf("Message sent\n");      
     else{
@@ -664,7 +665,7 @@ infoFrame messageDestuffing(char* buff,int fd){
     frame.control = frame.rawData[1];
     frame.bcc1 = frame.rawData[2];
     frame.data = (unsigned char*) malloc(sizeof(unsigned char)*(size-3));
-    printf("%d\n",size);
+    //printf("%d\n",size);
     for (int i = 3; i < size - 1; i++) {
         frame.data[i-3] = frame.rawData[i];
         
