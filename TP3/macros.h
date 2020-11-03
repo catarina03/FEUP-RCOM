@@ -35,11 +35,13 @@
 
 #define DATA 0x01
 #define START_FRAME 0x02
-#define STOP_FRAME 0x03
+#define END_FRAME 0x03
+
+#define PACKET_SIZE 4096
 
 
-#define FILE_SIZE 0x01;
-#define FILE_NAME 0x02;
+#define FILE_SIZE 0x00
+#define FILE_NAME 0x01
 
 #define TRANSMITTER 1234
 #define RECEIVER 4321

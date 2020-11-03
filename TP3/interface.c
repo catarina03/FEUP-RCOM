@@ -4,7 +4,7 @@
 int main(int argc, char **argv){
     //set_alarm();
     applicationLayer app;
-   
+    
     //parses arguments
     if (argc != 5){
         printf("Usage: ./application -p <port> -r/-w <file_path>\n");
@@ -51,7 +51,7 @@ int main(int argc, char **argv){
         }
     }
 
-    if(llopen(app.port, app.status) < 0){
+    if((app.fileDescriptor=llopen(app.port, app.status)) < 0){
         printf("Error opening file descriptor\n");
         exit(1);
     }
@@ -59,7 +59,7 @@ int main(int argc, char **argv){
 
     
     if(app.status== TRANSMITTER){
-        transmitterApp(app.path);
+        transmitterApp(app.path,app.fileDescriptor);
         
         
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv){
 
     
     else if(app.status==RECEIVER){
-
+        receiverApp(app.fileDescriptor);
 
 
 
