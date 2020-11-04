@@ -141,16 +141,18 @@ controlFrame parseControlFrame(unsigned char *rawBytes, int size) {
 
   frame.filesizeSize = 0;
   int len;
+  int fileSizeFlag=1;
   for (int i = 1; i < size; i++) {
-    if (rawBytes[i] == FILE_SIZE) {
+    if (rawBytes[i] == FILE_SIZE && fileSizeFlag) {
+        fileSizeFlag=0;
          //printf("Parsing file size\n");
       len = rawBytes[++i];
-      printf("len %d\n",len);
+      //printf("len %d\n",len);
       frame.fileSize = (unsigned char*) malloc(len);
 
       for (int j = 0; j <len;j++) {
         frame.fileSize[j] = rawBytes[++i];
-        printf("j %d - byte %x\n",j,rawBytes[i]);
+        //printf("j %d - byte %x\n",j,rawBytes[i]);
         
       }
       frame.filesizeSize=len;
@@ -217,6 +219,7 @@ int transmitterApp(char *path, int fd){
 
     if(llwrite(fd, controlFrame, frameSize) < 0){
         perror("Error sending START frame.\n");
+        free(controlFrame);
         return -1;
     }
 
@@ -244,9 +247,10 @@ int transmitterApp(char *path, int fd){
 
         if(llwrite(fd, data, bytesToSend) < 0){
             perror("Error sending Data frames\n");
+            free(data);
             return -1;
         }
-
+        free(data);
         sequenceNumber++;
     }
 
@@ -258,10 +262,14 @@ int transmitterApp(char *path, int fd){
     printf("frame size- %d\n",frameSize);
     if(llwrite(fd, endControlFrame, frameSize) < 0){
         perror("Error sending END frame.\n");
+          free(controlFrame);
+          free(endControlFrame);
         return -1;
     }
 
-
+    
+    free(controlFrame);
+    free(endControlFrame);
     return 0;
 }
 
@@ -355,6 +363,8 @@ int receiverApp(int fd){
         if (frame.control == START_FRAME) 
             state = 1;
         
+        free(frame);
+        
     }
 
 
@@ -375,7 +385,10 @@ int receiverApp(int fd){
         }
         dataFrame data = parseDataFrame(buff, size);
         
-        if (data.control != DATA) continue;
+        if (data.control != DATA) {
+            free(data);
+            continue;
+            }
         
         printDataFrame(&data, FALSE);
         for (int i =0;i<data.dataSize;i++){
@@ -387,6 +400,7 @@ int receiverApp(int fd){
             currSequence = data.sequence;
             index += data.dataSize;
         }
+        free(data);
     }
 
 
@@ -404,11 +418,12 @@ int receiverApp(int fd){
             fclose (fl);
         }
         printf("Received file\n");
+        free(name);
     }
 
     // resets and closes the receiver fd for the port
 
-
+    free(fullMessage);
     return 0;
 }
 
@@ -514,6 +529,7 @@ int llwrite(int fd, char* buffer,int length){
         printf("Message sent\n");      
     else{
         printf("Message not sent\n");
+        free(frame);
         return -1;  
     }
     
@@ -524,9 +540,11 @@ int llwrite(int fd, char* buffer,int length){
 
     if(response==CONTROL_RJ(1)||response==CONTROL_RJ(0)){
         printf("Negative response\n");
+        free(frame);
         return -1;
     }
     else{
+        free(frame);
         return size;
     }
 }
@@ -546,6 +564,7 @@ int llread(int fd, char* buffer){
     if(frame.bcc1!=(frame.address ^frame.control) ){
         sendMessage(fd, CONTROL_RJ(currFrame));
         printf("Sent Negative Response\n");
+        free(frame);
         return -1;
     }
     else{
@@ -556,6 +575,7 @@ int llread(int fd, char* buffer){
         else
             currFrame++;    
             
+        free(frame);
         return frame.size;
     }
 }

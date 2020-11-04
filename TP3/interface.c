@@ -139,7 +139,13 @@ int main(int argc, char **argv){
 
     */
 
+    printf("About to close\n");
 
+    if(llclose(app.fileDescriptor,app.status)){
+        printf("Error closing file descriptor");
+        exit(1);
+
+    }
 
 
 
