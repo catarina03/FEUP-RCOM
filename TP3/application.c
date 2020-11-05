@@ -363,7 +363,8 @@ int receiverApp(int fd){
         if (frame.control == START_FRAME) 
             state = 1;
         
-        free(frame);
+        free(frame.fileSize);
+        free(frame.fileName);
         
     }
 
@@ -386,7 +387,6 @@ int receiverApp(int fd){
         dataFrame data = parseDataFrame(buff, size);
         
         if (data.control != DATA) {
-            free(data);
             continue;
             }
         
@@ -400,7 +400,6 @@ int receiverApp(int fd){
             currSequence = data.sequence;
             index += data.dataSize;
         }
-        free(data);
     }
 
 
@@ -418,6 +417,8 @@ int receiverApp(int fd){
             fclose (fl);
         }
         printf("Received file\n");
+        free(frame.fileSize);
+        free(frame.fileName);
         free(name);
     }
 
@@ -529,7 +530,8 @@ int llwrite(int fd, char* buffer,int length){
         printf("Message sent\n");      
     else{
         printf("Message not sent\n");
-        free(frame);
+        free(frame.rawData);
+        free(frame.data);
         return -1;  
     }
     
@@ -540,11 +542,13 @@ int llwrite(int fd, char* buffer,int length){
 
     if(response==CONTROL_RJ(1)||response==CONTROL_RJ(0)){
         printf("Negative response\n");
-        free(frame);
+        free(frame.rawData);
+        free(frame.data);
         return -1;
     }
     else{
-        free(frame);
+        free(frame.rawData);
+        free(frame.data);
         return size;
     }
 }
@@ -564,7 +568,8 @@ int llread(int fd, char* buffer){
     if(frame.bcc1!=(frame.address ^frame.control) ){
         sendMessage(fd, CONTROL_RJ(currFrame));
         printf("Sent Negative Response\n");
-        free(frame);
+        free(frame.rawData);
+        free(frame.data);
         return -1;
     }
     else{
@@ -575,7 +580,8 @@ int llread(int fd, char* buffer){
         else
             currFrame++;    
             
-        free(frame);
+        free(frame.rawData);
+        free(frame.data);
         return frame.size;
     }
 }
