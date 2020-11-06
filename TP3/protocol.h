@@ -13,8 +13,6 @@ struct linkLayer {
 
 unsigned char readSupervisionFrame(int fd);
 
-void sendSupervisionFrame(int fd, unsigned char control, unsigned char bcc);
-
 int receiveSupervisionFrame(int fd, unsigned char control);
 
 void sendMessage(int fd, unsigned char msg);

@@ -13,7 +13,7 @@
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
-#define MAX_SIZE 100
+#define MAX_SIZE 4098 //10968
 
 #define FLAG 0x7E
 #define A 0x03
