@@ -47,15 +47,15 @@ void buildSupervisionFrame(supervisionFrame *frame, unsigned char controlByte);
 
 int llopen(char *port, int type);
 
-int llwrite(int fd, char* buffer,int length);
+int llwrite(int fd, unsigned char* buffer,int length);
 
 int llread(int fd, char* buffer);
 
 int llclose(int fd, int type);
 
-infoFrame messageStuffing(char* buff, int length);
+infoFrame messageStuffing(unsigned char* buff, int length);
 
-infoFrame messageDestuffing(char*buff,int fd);
+infoFrame messageDestuffing(unsigned char*buff,int fd);
 
 int openReader(int fd);
 

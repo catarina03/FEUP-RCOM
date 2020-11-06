@@ -61,10 +61,6 @@ int main(int argc, char **argv){
     if(app.status== TRANSMITTER){
         transmitterApp(app.path,app.fileDescriptor);
 
-        
-        
-
-
     }
 
 
@@ -83,61 +79,6 @@ int main(int argc, char **argv){
 
     }
 
-
-
-/*
-        do{
-            alarm(3);
-
-
-            sendMessage(app.fileDescriptor,SET);
-
-
-            setAlarmFlag(0);
-
-
-            while(!getAlarmFlag()){
-
-                if(!receiveSupervisionFrame(app.fileDescriptor,UA)){
-                    break;
-                }
-            }
-            
-            if(getAlarmFlag()) 
-                printf("Timed Out\n");
-
-
-        }while(getAlarmCounter()<3);
-          
-        setAlarmCounter(0);
-
-*/
-
-
-
-
-/*
-        if(!receiveSupervisionFrame(app.fileDescriptor,SET)){
-            sendMessage(app.fileDescriptor,UA);
-        }
-        else{
-            printf("Did not UA. exited program\n ");
-            llclose(app.fileDescriptor,app.status);
-            exit(-1);
-        }
-
-        
-        char buff[256];
-        if(llread(app.fileDescriptor,buff)==-1){
-            printf("Error on readings");
-        }
-
-        
-
-    }
-
-
-    */
 
     printf("About to close\n");
 

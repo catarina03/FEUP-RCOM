@@ -29,4 +29,6 @@ int getAlarmCounter();
 
 void setAlarmFlag(int flag);
 
+void setAlarmCounter(int count);
+
 
