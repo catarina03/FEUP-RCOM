@@ -79,4 +79,4 @@ void printControlFrame(controlFrame frame);
 
 dataFrame parseDataFrame(unsigned char *rawBytes, int size);
 
-void printDataFrame(dataFrame* frame, int full_info);
+void printDataFrame(dataFrame frame, int full_info);

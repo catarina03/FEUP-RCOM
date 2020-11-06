@@ -6,7 +6,7 @@ rm write_obj
 
 if gcc -o write_obj -Wall interface.c application.c protocol.c; then 
 echo "---------"
-./write_obj -p /dev/ttyS10 -w pinguim.gif ;
+valgrind --leak-check=yes ./write_obj -p /dev/ttyS10 -w pinguim.gif ;
 else
 echo "COMPILATION ERROR";
 fi

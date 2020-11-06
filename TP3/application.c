@@ -7,12 +7,9 @@ struct termios oldtio;
 
 int openReader( int fd){
 
-    //Builds supervision frame
-    //supervisionFrame reply;
-    //buildSupervisionFrame(&reply, UA);
+
 
     if(receiveSupervisionFrame(fd,SET) >= 0){
-        //sendSupervisionFrame(fd,reply.control, reply.bcc);
         sendMessage(fd,UA);
     }
     else{
@@ -28,11 +25,7 @@ int openReader( int fd){
 
 int openWriter(int fd){
 
-    //Builds supervision frame
-    //supervisionFrame start;
-    //buildSupervisionFrame(&start, SET);
-    
-    //sendSupervisionFrame(fd, start.control, start.bcc);
+
     sendMessage(fd,SET);
     
     do{
@@ -54,6 +47,11 @@ int openWriter(int fd){
 
 
     perror("Error retriving supervision frame\n");
+
+    
+    llclose(fd,TRANSMITTER);
+    
+
     exit(-1);
 }
 
@@ -62,23 +60,18 @@ int closeWriter(int fd){
 
     printf("Closing writer...\n");
 
-    //supervisionFrame close;
-    //buildSupervisionFrame(&close, DISC);
-
-    //sendSupervisionFrame(fd, close.control, close.bcc);
 
     sendMessage(fd,DISC);
 
     printf("sent DISC frame\n");
 
-    // closeUA;
-    //buildSupervisionFrame(&closeUA, UA);
+
 
     if (receiveSupervisionFrame(fd, DISC)){
         printf("received DISC frame\n");
         sendMessage(fd,UA);
         return 0;
-        //sendSupervisionFrame(fd, closeUA.control, closeUA.bcc);
+        
     }
 
 
@@ -93,12 +86,6 @@ int closeReader(int fd){
         printf("Error recieving DISC Frame...\n"); 
         return -1;}
 
-    //Builds supervision frame
-    //supervisionFrame close;
-    //buildSupervisionFrame(&close, DISC);
-
-    //sendSupervisionFrame(fd, close.control, close.bcc);
-
     sendMessage(fd,DISC);
 
     if (receiveSupervisionFrame(fd, UA) < 0) {
@@ -112,14 +99,18 @@ int closeReader(int fd){
 
 unsigned char *buildControlFrame(char ctrlField, unsigned fileSize, char* fileName, unsigned int L1, unsigned int L2, unsigned int frameSize) {
     unsigned char *frame=(unsigned char*) malloc(sizeof(unsigned char)*frameSize);
-
-    frame[0] = (unsigned char)ctrlField;
+    printf(" ----Frame Size -------%d\n",frameSize);
+    frame[0] = ctrlField;
     frame[1] = FILE_SIZE;
     frame[2] = L1;
     memcpy(&frame[3], &fileSize, L1);
-    frame[3+L1] = (unsigned char) FILE_NAME;
+    frame[3+L1] = FILE_NAME;
     frame[4+L1] = L2;
     memcpy(&frame[5+L1], fileName, L2);
+    printf(" -----File Size -------%d\n",fileSize);
+    printf(" -----Size Size -------%d\n",L1);
+    printf(" -----File Name -------%s\n",fileName);
+    printf(" -----Name Size -------%d\n",L2);
 
     return frame;
 }
@@ -138,17 +129,17 @@ controlFrame parseControlFrame(unsigned char *rawBytes, int size) {
   frame.filesizeSize = 0;
   int len;
   int fileSizeFlag=1;
-  for (int i = 1; i < size; i++) {
+  for (int i = 1; i < size;i++) {
     if (rawBytes[i] == FILE_SIZE && fileSizeFlag) {
         fileSizeFlag=0;
-         //printf("Parsing file size\n");
+        // printf("Parsing file size\n");
       len = rawBytes[++i];
       //printf("len %d\n",len);
-      frame.fileSize = (unsigned char*) malloc(len);
+      frame.fileSize = (unsigned char*) malloc(len*sizeof(unsigned char));
 
       for (int j = 0; j <len;j++) {
         frame.fileSize[j] = rawBytes[++i];
-        //printf("j %d - byte %x\n",j,rawBytes[i]);
+        //printf("j %d - byte 0x%02x\n",j,frame.fileSize[j]);
         
       }
       frame.filesizeSize=len;
@@ -157,15 +148,19 @@ controlFrame parseControlFrame(unsigned char *rawBytes, int size) {
     else if (rawBytes[i] == FILE_NAME) {
         //printf("Parsing file name\n ");
       len = rawBytes[++i];
-      
-      frame.fileName = (unsigned char *) malloc (len+1);
+      //printf("len %d\n",len);
+      frame.fileName = (unsigned char *) malloc ((len+1)*sizeof(unsigned char));
       
       for (int j = 0; j < len;j++) {
         frame.fileName[j] = rawBytes[++i];
+        //printf("j %d - byte 0x%02x\n",j,frame.fileName[j]);
       }
       frame.filenameSize=len;
     }
+    
   }
+  /*for (int i=1;i<size;i++)
+    printf("RawData byte %d- 0x%02x\n",i,rawBytes[i]);*/
 
   frame.rawSize=size;
   frame.fileName[frame.filenameSize] = '\0';
@@ -223,33 +218,31 @@ int transmitterApp(char *path, int fd){
 
     
     //Generates and sends data packets
-    char buf[MAX_SIZE];
+    char *buf=(char*)malloc(sizeof(char)*MAX_SIZE);
     unsigned int bytesToSend, noBytes;
     unsigned int sequenceNumber = 0;
 
-    while((noBytes = read(fileFd, buf, MAX_SIZE))){
-        unsigned char *data=(unsigned char *)malloc(sizeof(unsigned char)*MAX_SIZE);
+    while((noBytes = read(fileFd, buf, MAX_SIZE-4))){
+        bytesToSend = noBytes + 4;
+        unsigned char *data=(unsigned char *)malloc(sizeof(unsigned char)*bytesToSend);
+        printf(" ------Data size------ %d\n",noBytes);
         data[0] = DATA;
         data[1] = sequenceNumber % 255;
-        data[2] = noBytes / 256;
+        data[2] = noBytes /256;
         data[3] = noBytes % 256;
         memcpy(&data[4], buf, noBytes);
-
-        if((noBytes + 4) < MAX_SIZE)
-            bytesToSend = noBytes + 4;
-        else
-            bytesToSend = MAX_SIZE;
         
 
         if(llwrite(fd, data, bytesToSend) < 0){
             perror("Error sending Data frames\n");
             free(data);
+            free(controlFrame);
             return -1;
         }
         free(data);
         sequenceNumber++;
     }
-
+    free(buf);
     printf("Number of data frames sent: %d\n", sequenceNumber);
 
 
@@ -258,8 +251,8 @@ int transmitterApp(char *path, int fd){
     printf("frame size- %d\n",frameSize);
     if(llwrite(fd, endControlFrame, frameSize) < 0){
         perror("Error sending END frame.\n");
-          free(controlFrame);
-          free(endControlFrame);
+        free(controlFrame);
+        free(endControlFrame);
         return -1;
     }
 
@@ -301,23 +294,23 @@ dataFrame parseDataFrame(unsigned char *rawBytes, int size) {
 }
 
 
-void printDataFrame(dataFrame* frame, int full) {
+void printDataFrame(dataFrame frame, int full) {
   printf("     DATA     \n");
-  printf("Control: - (0x%x)\n", frame->control);
-  printf("Data size: %d (0x%x)\n", frame->dataSize,
-         frame->dataSize);
-  printf("Sequence: %d (0x%x)\n", frame->sequence, frame->sequence);
+  printf("Control: -0x%02x-\n", frame.control);
+  printf("Data size: %d -0x%02x-\n", frame.dataSize,
+         frame.dataSize);
+  printf("Sequence: %d -0x%02x-\n", frame.sequence, frame.sequence);
 
   if (full) {
-    for (int i = 0; i < frame->dataSize; i++) {
-      printf("DATA[%d]: %c (0x%x)\n", i, frame->data[i], frame->data[i]);
+    for (int i = 0; i < frame.dataSize; i++) {
+      printf("DATA[%d]: %x -0x%02x\n", i, frame.data[i], frame.data[i]);
     }
   }
 }
 
 int receiverApp(int fd){
 
-    char buff[1024];
+    char buff[2*MAX_SIZE+7];
     int size;
 
     int state = 0;
@@ -325,7 +318,7 @@ int receiverApp(int fd){
     unsigned char* fileName;
 
     unsigned long fileSize=0;
-    //START Control Packet
+    //START Control Frame
     while (!state) {
         memset(buff, 0, sizeof(buff));
         while ((size = llread(fd, buff)) < 0) {
@@ -341,6 +334,8 @@ int receiverApp(int fd){
         
         fileName = frame.fileName;
 
+        //printf("File Name: %s\n", fileName);
+
         printControlFrame(frame);
         if (frame.control == START_FRAME) 
             state = 1;
@@ -351,8 +346,9 @@ int receiverApp(int fd){
     }
 
 
-    // * DATA Packets
-    unsigned char *fullMessage = (unsigned char*) malloc (fileSize);
+    // * DATA Frames
+    unsigned char *fullMessage = (unsigned char*) malloc (fileSize*sizeof(unsigned char));
+    //unsigned char fullMessage[fileSize];
     int index = 0;
     int currSequence = -1;
 
@@ -374,9 +370,9 @@ int receiverApp(int fd){
             continue;
             }
         
-        printDataFrame(&data, FALSE);
+        //printDataFrame(&data, FALSE);
         for (int i =0;i<data.dataSize;i++){
-            data.data[index+i] = fullMessage[i];
+            fullMessage[index+i] = data.data[i];
         }
         //printf("Printed Data frame\n");
         // * caso o numero de sequencia seja diferente do anterior deve atualizar o index
@@ -387,28 +383,36 @@ int receiverApp(int fd){
     }
 
 
-    // * STOP Control Packet
+    // * END Control Frame
     if (state == 2) {
         controlFrame frame = parseControlFrame(buff, size);
         printControlFrame(frame);
 
-        char* name = (char*) malloc ((strlen(fileName) +7) * sizeof(char));
-        sprintf(name, "cloned_%s", fileName); //^ add +7 
+        //char* name = (char*) malloc ((strlen(fileName) +7) * sizeof(char));
+        char* name = (char*) malloc ((frame.filenameSize +7) * sizeof(char));
+        //char name[frame.filenameSize +7];
+
+        sprintf(name, "cloned_%s", frame.fileName); //^ add +7 
         
-        FILE *fl = fopen(name, "write_obj");
+        FILE *fl = fopen(name, "wb");
         if (fl != NULL) {
-            fwrite (fullMessage, sizeof (unsigned char), fileSize, fl);
-            fclose (fl);
+            fwrite(fullMessage, sizeof (unsigned char), fileSize, fl);
+            fclose(fl);
         }
         printf("Received file\n");
         free(frame.fileSize);
+        //printf("Freed file size\n");
         free(frame.fileName);
+        //printf("Freed file name\n");
         free(name);
+        //printf("Freed name\n");
+        //free(fl);
     }
 
     // resets and closes the receiver fd for the port
 
     free(fullMessage);
+    printf("Freed everything\n");
     return 0;
 }
 
@@ -417,13 +421,6 @@ int receiverApp(int fd){
 
 
 
-/*
-void buildSupervisionFrame(supervisionFrame *frame, unsigned char controlByte){
-  frame->flag = FLAG;
-  frame->address = A;
-  frame->control = controlByte;
-  frame->bcc = frame->address ^ frame->control;
-}*/
 
 
 int llopen(char *port, int type){
@@ -507,12 +504,13 @@ int llwrite(int fd, unsigned char* buffer,int length){
     printf("Message: %x\n", buffer);
 
     infoFrame frame = messageStuffing(buffer, length);
-    printInfoFrame(frame);
+    //printInfoFrame(frame);
     //printf("raw data %hhn\n",frame.rawData);
     int size;
     //printf("raw size %d\n",frame.rawSize);
-    if((size=write(fd, frame.rawData, frame.rawSize))>=0)
-        printf("Message sent\n");      
+    if((size=write(fd, frame.rawData, frame.rawSize))>=0){
+    //printf("Message sent\n");     
+    }     
     else{
         printf("Message not sent\n");
         free(frame.rawData);
@@ -545,8 +543,8 @@ int llwrite(int fd, unsigned char* buffer,int length){
 int llread(int fd, char* buffer){
 
     infoFrame frame = messageDestuffing(buffer,fd);
-    printInfoFrame(frame);
-    printf("Exited destuffing\n");
+    //printInfoFrame(frame);
+    //printf("Exited destuffing\n");
     memcpy(buffer, frame.data,frame.size);
     
     //printf("bcc1: %x - %x address ^ control\n",frame.bcc1,frame.address ^frame.control);
@@ -559,7 +557,7 @@ int llread(int fd, char* buffer){
     }
     else{
         sendMessage(fd, CONTROL_RR(currFrame));
-        printf("Sent Positive Response\n");
+        //printf("Sent Positive Response\n");
         if(currFrame)
             currFrame--;
         else
@@ -604,7 +602,6 @@ infoFrame messageStuffing(unsigned char* buff, int length){
         
         frame.bcc2=buff[i]^frame.bcc2;
     }
-    frame.size--;
     frame.rawData=(unsigned char*)malloc((frame.size+7)*sizeof(unsigned char));
     frame.rawData[0]=frame.flag;
     frame.rawData[1]=frame.address;
@@ -633,6 +630,8 @@ infoFrame messageStuffing(unsigned char* buff, int length){
         frame.rawData[frame.size+5]=frame.flag;
         frame.rawSize=frame.size+6;
     }
+    printf("----Frame Size -----%d\n",frame.size);
+    printf("------Raw Size -----%d\n",frame.rawSize);
     //for(int i=0; i<frame.rawSize;i++)
     //printf("Raw data %d: 0x%x\n",i,frame.rawData[i]);
     return frame;
@@ -652,12 +651,12 @@ infoFrame messageDestuffing(unsigned char* buff,int fd){
         
         if (msg == FLAG && flags == 0) {
             flags = 1;
-            printf("Flag 1\n");
+            //printf("Flag 1\n");
             continue;
         }
         else if (msg == FLAG && flags == 1) {
             flags = 2;
-            printf("Flag 2 - size %d\n",size);
+            //printf("Flag 2 - size %d\n",size);
             break;
         }
         //printf("msg- 0x%x size- %d rawData- %x",msg,size,frame.rawData);

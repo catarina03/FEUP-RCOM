@@ -63,19 +63,11 @@ int main(int argc, char **argv){
 
     }
 
-
-
-
-    
     else if(app.status==RECEIVER){
         if(receiverApp(app.fileDescriptor)<0){
             perror("Error on receiver\n");
             exit(1);
         }
-
-
-
-
 
     }
 
@@ -87,7 +79,6 @@ int main(int argc, char **argv){
         exit(1);
 
     }
-
 
 
     return 0;
