@@ -43,7 +43,6 @@ typedef struct {
   int rawSize;       /**< @brief The size of the raw_bytes array */
 } dataFrame;
 
-void buildSupervisionFrame(supervisionFrame *frame, unsigned char controlByte);
 
 int llopen(char *port, int type);
 
