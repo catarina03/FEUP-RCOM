@@ -34,6 +34,8 @@
 #define CONTROL_RJ(r) ((r == 0) ? 0x01 : 0x81)
 
 #define STOP_AND_WAIT 50
+#define ALARM_TIME 3    
+#define RT_ATTEMPTS 3
 
 #define DATA 0x1
 #define START_FRAME 0x2

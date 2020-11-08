@@ -10,3 +10,4 @@ void setAlarmFlag(int flag);
 
 void setAlarmCounter(int count);
 
+void resetAlarm();

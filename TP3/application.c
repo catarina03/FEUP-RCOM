@@ -85,15 +85,6 @@ int llclose(int fd, int type){
 
 
 
-
-
-
-
-
-
-
-
-
 /* Start of Reader App */
 
 
@@ -317,16 +308,35 @@ int closeReader(int fd){
     //printf("Closing reader...\n");
     if (receiveSupervisionFrame(fd, DISC) < 0) {
         printf("Error recieving DISC Frame...\n"); 
-        return -1;}
-
-    sendSupervisionFrame(fd,DISC);
-
-    if (receiveSupervisionFrame(fd, UA) < 0) {
-        printf("Error recieving UA Frame...\n");   
         return -1;
     }
-    printf("\nClosed Reader\n");
-    return 0;
+
+    
+    do{
+        sendSupervisionFrame(fd,DISC);
+        alarm(ALARM_TIME);
+        setAlarmFlag(0);
+        //printf("%d\n",getAlarmCounter());
+        
+        if(receiveSupervisionFrame(fd, UA)){
+            alarm(0);
+            setAlarmCounter(0);
+            printf("\nClosed Reader\n");
+            return 0;
+        }
+        
+        if(getAlarmFlag()){
+            printf("Timed Out\n");
+        } 
+    }while(getAlarmCounter()<3);
+    setAlarmCounter(0);
+
+    
+    printf("Error recieving UA Frame...\n");   
+    return -1;
+    
+    
+    
 }
 
 
@@ -339,17 +349,20 @@ int closeReader(int fd){
 int openWriter(int fd){
 
 
-    sendSupervisionFrame(fd,SET);
+    
     
     do{
+        sendSupervisionFrame(fd,SET);
         alarm(ALARM_TIME);
         setAlarmFlag(0);
         //printf("%d\n",getAlarmCounter());
-        while(!getAlarmFlag()){
-            if(receiveSupervisionFrame(fd, UA)){
-               return 0;
-            }
+        
+        if(receiveSupervisionFrame(fd, UA)){
+            alarm(0);
+            setAlarmCounter(0);
+            return 0;
         }
+        
         if(getAlarmFlag()){
             printf("Timed Out\n");
         } 
@@ -401,8 +414,11 @@ int transmitterApp(char *path, int fd){
     unsigned char *controlFrame = buildControlFrame(START_FRAME, fileStat.st_size, path, L1, L2, frameSize);
 
     //printf("built control frame\n");
-
-    if(llwrite(fd, controlFrame, frameSize) < 0){
+    int resp;
+    while((resp=llwrite(fd, controlFrame, frameSize))==-1){
+        usleep(STOP_AND_WAIT);
+    }
+    if(resp==-2){
         perror("Error sending START frame.\n");
         free(controlFrame);
         return -1;
@@ -410,7 +426,7 @@ int transmitterApp(char *path, int fd){
 
     //printf("wrote start frame sucessfully\n");
 
-    
+    usleep(STOP_AND_WAIT);
     //Generates and sends data packets
     char *buf=(char*)malloc(sizeof(char)*MAX_SIZE);
     unsigned int bytesToSend, noBytes;
@@ -425,9 +441,10 @@ int transmitterApp(char *path, int fd){
         data[2] = noBytes /256;
         data[3] = noBytes % 256;
         memcpy(&data[4], buf, noBytes);
-        
-
-        if(llwrite(fd, data, bytesToSend) < 0){
+        while((resp=llwrite(fd, data, bytesToSend))==-1){
+            usleep(STOP_AND_WAIT);
+        }
+        if(resp==-2){
             perror("Error sending Data frames\n");
             free(data);
             free(controlFrame);
@@ -435,15 +452,20 @@ int transmitterApp(char *path, int fd){
         }
         free(data);
         sequenceNumber++;
+        usleep(STOP_AND_WAIT);
     }
     free(buf);
     printf("Number of data frames sent: %d\n", sequenceNumber);
 
-
+    usleep(STOP_AND_WAIT);
     //Generates and sends END control frame
     unsigned char *endControlFrame = buildControlFrame(END_FRAME, fileStat.st_size, path, L1, L2, frameSize);
     //printf("frame size- %d\n",frameSize);
-    if(llwrite(fd, endControlFrame, frameSize) < 0){
+
+    while((resp=llwrite(fd, endControlFrame, frameSize))==-1){
+        usleep(STOP_AND_WAIT);
+    }
+    if(resp==-2){
         perror("Error sending END frame.\n");
         free(controlFrame);
         free(endControlFrame);
@@ -467,38 +489,62 @@ int llwrite(int fd, unsigned char* buffer,int length){
     //printf("raw data %hhn\n",frame.rawData);
     int size;
     //printf("raw size %d\n",frame.rawSize);
-    if((size=write(fd, frame.rawData, frame.rawSize))>=0){
-    //printf("Message sent\n");     
-    }     
-    else{
-        printf("Message not sent\n");
-        free(frame.rawData);
-        free(frame.data);
-        return -1;  
-    }
-    
-    //stop and wait part
-    usleep(STOP_AND_WAIT);
+    alarm(ALARM_TIME);
+    //printf("Alarm counter %d\n",getAlarmCounter());
+    do{
+        if((size=write(fd, frame.rawData, frame.rawSize))>=0){
+            printf("Message sent\n");     
+        }     
+        else{
+            alarm(0);
+            setAlarmFlag(0);
+            printf("Message not sent\n");
+            free(frame.rawData);
+            free(frame.data);
+            return -1;  
+        }
+        
+        if(getAlarmFlag()){
+            alarm(ALARM_TIME);
+            setAlarmFlag(0);
+            //printf("Alarm counter %d\n",getAlarmCounter());
+        }
+        
 
-    unsigned char response = readSupervisionFrame(fd);
+        unsigned char response = readSupervisionFrame(fd);
+        if(response==0xff)
+            continue;
 
-    if(response==CONTROL_RJ(1)||response==CONTROL_RJ(0)){
-        printf("Negative response\n");
-        free(frame.rawData);
-        free(frame.data);
-        return -1;
-    }
-    else{
-        free(frame.rawData);
-        free(frame.data);
-        return size;
-    }
+        if(response==CONTROL_RJ(1)||response==CONTROL_RJ(0)){
+            alarm(0);
+            setAlarmFlag(0);
+            printf("Negative response\n");
+            free(frame.rawData);
+            free(frame.data);
+            return -1;
+        }
+        else if (response==CONTROL_RR(currFrame)){
+            resetAlarm();
+            if(currFrame)
+                currFrame--;
+            else
+                currFrame++;    
+            
+            free(frame.rawData);
+            free(frame.data);
+            return size;
+        }
+    }while (getAlarmCounter()<RT_ATTEMPTS);
+    resetAlarm();
+    free(frame.rawData);
+    free(frame.data);
+    return -2;
 }
 
 
 
  infoFrame messageStuffing(unsigned char* buff, int length){
-     infoFrame frame;
+    infoFrame frame;
     memset(&frame,0, sizeof( infoFrame));
     frame.flag=FLAG;
     frame.address=A;
@@ -569,22 +615,32 @@ int closeWriter(int fd){
     //printf("Closing writer...\n");
 
 
-    sendSupervisionFrame(fd,DISC);
-
-    //printf("sent DISC frame\n");
-
-
-
-    if (receiveSupervisionFrame(fd, DISC)){
-        //printf("received DISC frame\n");
-        sendSupervisionFrame(fd,UA);
-        printf("\nClosed Writer\n");
-        return 0;
+    do{
+        sendSupervisionFrame(fd,DISC);
+        //printf("sent DISC frame\n")
+        alarm(ALARM_TIME);
+        setAlarmFlag(0);
+        //printf("%d\n",getAlarmCounter());
         
-    }
+        if(receiveSupervisionFrame(fd, DISC)){
+            sendSupervisionFrame(fd,UA);
+            alarm(0);
+            setAlarmCounter(0);
+            printf("\nClosed Writer\n");
+            return 0;
+        }
+        
+        if(getAlarmFlag()){
+            printf("Timed Out\n");
+        } 
+    }while(getAlarmCounter()<3);
+    setAlarmCounter(0);
 
 
-    return TRUE;
+
+    printf("Error recieving DISC Frame...\n");   
+
+    return -1;
 }
 
 

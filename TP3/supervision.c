@@ -6,8 +6,9 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
   int times=0;
   unsigned char msg;
   //printf("Reading response...\n");
-  while (times!=5) {
+  while (times!=5 && !getAlarmFlag()) {
     read(fd,&msg,1);
+    
     if(times==0){
         if(msg==FLAG){
           times++;
@@ -61,7 +62,10 @@ unsigned char readSupervisionFrame(int fd){
   unsigned char msg, control;
   //printf("Reading response...\n");
   while (times!=5) {
-    read(fd,&msg,1);
+    int resp =read(fd,&msg,1);
+    if (resp<0){
+      return 0xff;
+    }
     if(times==0){
         if(msg==FLAG){
           times++;
@@ -119,6 +123,7 @@ void sendSupervisionFrame(int fd, unsigned char msg) {
   mesh[3]=mesh[1]^mesh[2];
   mesh[4]=FLAG;
   write(fd,mesh,5);
+  //printf("Sending Supervision Frame\n");
 }
 
 

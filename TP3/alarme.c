@@ -7,10 +7,15 @@ static int alarmCounter = 0;
 
 static int alarmFlag = 0;
 
+
+
 void sigalarm_handler(int signo){
   
-  alarmFlag=1;
-  alarmCounter++;
+  
+    alarmFlag=1;
+    alarmCounter++;
+    printf("Alarm ringing\n");
+  
 
 }
 
@@ -40,4 +45,11 @@ void setAlarm(){
       fprintf(stderr,"Unable to install SIGALARM handler\n");        
       exit(1);  
   } 
+}
+
+
+void resetAlarm(){
+  alarm(0);
+  alarmFlag=0;
+  alarmCounter=0;
 }
