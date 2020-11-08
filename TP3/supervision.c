@@ -1,43 +1,4 @@
-#include "protocol.h"
-
-static int alarmCounter = 0;
-
-static int alarmFlag = 0;
-
-void sigalarm_handler(int signo){
-  
-  alarmFlag=1;
-  alarmCounter++;
-
-}
-
-int getAlarmFlag(){
-  return alarmFlag;
-}
-
-int getAlarmCounter(){
-  return alarmCounter;
-}
-
-void setAlarmFlag(int flag){
-  alarmFlag=flag;
-}
-
-void setAlarmCounter(int counter){
-  alarmCounter=counter;
-}
-
-void setAlarm(){
-  struct sigaction act_alarm;
-  act_alarm.sa_handler = sigalarm_handler;
-  sigemptyset(&act_alarm.sa_mask);
-  act_alarm.sa_flags = 0;
-  
-  if (sigaction(SIGALRM,&act_alarm,NULL) < 0)  {        
-      fprintf(stderr,"Unable to install SIGALARM handler\n");        
-      exit(1);  
-  } 
-}
+#include "supervision.h"
 
 
 
@@ -95,10 +56,6 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
   return FALSE;
 }
 
-
-
-
-
 unsigned char readSupervisionFrame(int fd){
   int times=0;
   unsigned char msg, control;
@@ -153,7 +110,8 @@ unsigned char readSupervisionFrame(int fd){
   return control;
 }
 
-void sendMessage(int fd, unsigned char msg) {
+
+void sendSupervisionFrame(int fd, unsigned char msg) {
   unsigned char mesh[5];
   mesh[0]=FLAG;
   mesh[1]=A;
@@ -162,3 +120,7 @@ void sendMessage(int fd, unsigned char msg) {
   mesh[4]=FLAG;
   write(fd,mesh,5);
 }
+
+
+
+

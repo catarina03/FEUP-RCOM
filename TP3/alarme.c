@@ -1,31 +1,43 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
+#include "alarme.h"
 
-int flag=1, conta=1;
+static int alarmCounter = 0;
 
-void atende()                   // atende alarme
-{
-	printf("alarme # %d\n", conta);
-	flag=1;
-	conta++;
-}
+static int alarmFlag = 0;
 
-/*
-
-main()
-{
-
-(void) signal(SIGALRM, atende);  // instala  rotina que atende interrupcao
-
-while(conta < 4){
-   if(flag){
-      alarm(3);                 // activa alarme de 3s
-      flag=0;
-   }
-}
-printf("Vou terminar.\n");
+void sigalarm_handler(int signo){
+  
+  alarmFlag=1;
+  alarmCounter++;
 
 }
 
-*/
+int getAlarmFlag(){
+  return alarmFlag;
+}
+
+int getAlarmCounter(){
+  return alarmCounter;
+}
+
+void setAlarmFlag(int flag){
+  alarmFlag=flag;
+}
+
+void setAlarmCounter(int counter){
+  alarmCounter=counter;
+}
+
+void setAlarm(){
+  struct sigaction act_alarm;
+  act_alarm.sa_handler = sigalarm_handler;
+  sigemptyset(&act_alarm.sa_mask);
+  act_alarm.sa_flags = 0;
+  
+  if (sigaction(SIGALRM,&act_alarm,NULL) < 0)  {        
+      fprintf(stderr,"Unable to install SIGALARM handler\n");        
+      exit(1);  
+  } 
+}

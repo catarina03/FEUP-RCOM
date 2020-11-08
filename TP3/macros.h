@@ -1,3 +1,5 @@
+#pragma once
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -13,7 +15,7 @@
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
-#define MAX_SIZE 100 //works from 10 to 5000
+#define MAX_SIZE 200 //works from 10 to 5000
 
 #define FLAG 0x7E
 #define A 0x03
@@ -37,7 +39,7 @@
 #define START_FRAME 0x2
 #define END_FRAME 0x3
 
-#define PACKET_SIZE 4096
+#define ALARM_TIME 3
 
 
 #define FILE_SIZE 0x00
@@ -45,3 +47,7 @@
 
 #define TRANSMITTER 1234
 #define RECEIVER 4321
+
+
+#define PRINT_ALL 0
+
