@@ -15,7 +15,7 @@
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
-#define MAX_SIZE 200 //works from 10 to 5000
+#define MAX_SIZE 100 //works from 10 to 5000
 
 #define FLAG 0x7E
 #define A 0x03
@@ -33,15 +33,13 @@
 #define CONTROL_RR(r) ((r == 0) ? 0x05 : 0x85)
 #define CONTROL_RJ(r) ((r == 0) ? 0x01 : 0x81)
 
-#define STOP_AND_WAIT 50
+#define STOP_AND_WAIT 50000
 #define ALARM_TIME 3    
 #define RT_ATTEMPTS 3
 
 #define DATA 0x1
 #define START_FRAME 0x2
 #define END_FRAME 0x3
-
-#define ALARM_TIME 3
 
 
 #define FILE_SIZE 0x00

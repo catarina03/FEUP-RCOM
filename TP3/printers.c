@@ -45,7 +45,7 @@ void printInfoFrame( infoFrame frame){
         }
     }
     printf("\nData Size - %d",frame.size);
-    printf("BCC2 - 0x%x\n",frame.bcc2);
+    printf("\nBCC2 - 0x%x\n",frame.bcc2);
     printf("Second FLAG- 0x%x",frame.flag);
     if(PRINT_ALL){
         for(int i =0;i<frame.rawSize;i++){

@@ -268,7 +268,7 @@ int llread(int fd, char* buffer){
             //printf("Flag 2 - size %d\n",size);
             break;
         }
-        //printf("msg- 0x%x size- %d rawData- %x",msg,size,frame.rawData);
+        //printf("msg- 0x%02x size- %d rawData- 0x%02x",msg,size,frame.rawData);
         frame.rawData[size] = msg;
         frame.rawData = (unsigned char*) realloc (frame.rawData, (size+2));
         //printf(" --r");
@@ -282,7 +282,7 @@ int llread(int fd, char* buffer){
         size++;
         //printf("--new size-%d\n",size);
     }
-    frame.rawData = (unsigned char*) realloc (frame.rawData, (size));
+    //frame.rawData = (unsigned char*) realloc (frame.rawData, (size));
     //printf("exits\n");
     frame.flag=FLAG;
     frame.address = frame.rawData[0];
@@ -305,7 +305,7 @@ int llread(int fd, char* buffer){
 
 int closeReader(int fd){
 
-    //printf("Closing reader...\n");
+    printf("Closing reader...\n");
     if (receiveSupervisionFrame(fd, DISC) < 0) {
         printf("Error recieving DISC Frame...\n"); 
         return -1;
@@ -316,7 +316,7 @@ int closeReader(int fd){
         sendSupervisionFrame(fd,DISC);
         alarm(ALARM_TIME);
         setAlarmFlag(0);
-        //printf("%d\n",getAlarmCounter());
+        printf("%d\n",getAlarmCounter());
         
         if(receiveSupervisionFrame(fd, UA)){
             alarm(0);

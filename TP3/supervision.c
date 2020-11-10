@@ -5,20 +5,20 @@
 int receiveSupervisionFrame(int fd, unsigned char control) {
   int times=0;
   unsigned char msg;
-  //printf("Reading response...\n");
+  printf("Reading response...\n");
   while (times!=5 && !getAlarmFlag()) {
     read(fd,&msg,1);
     
     if(times==0){
         if(msg==FLAG){
           times++;
-          //printf("FLAG- 0x%02x\n",msg);
+          printf("FLAG- 0x%02x\n",msg);
         }
     }
     else if(times==1){
         if(msg==A){
           times++;
-          //printf("A- 0x%02x\n",msg);
+          printf("A- 0x%02x\n",msg);
         }
         else {
           if(msg==FLAG)
@@ -30,7 +30,7 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
     else if (times==2){
         if(msg==control){
           times++;
-          //printf("C- 0x%02x\n",msg);
+          printf("C- 0x%02x\n",msg);
           control = msg;
         }
         else
@@ -39,7 +39,7 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
     else if(times==3){
         if(msg==(A^control)){
           times++;
-          //printf("BCC- 0x%02x\n",msg);
+          printf("BCC- 0x%02x\n",msg);
         }
         else
           times=0;
@@ -47,7 +47,7 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
     else if(times==4){
         if(msg==FLAG) {
           times++;
-          //printf("SECOND FLAG- 0x%02x\n",msg);
+          printf("SECOND FLAG- 0x%02x\n",msg);
           return TRUE;
         }
         else
@@ -123,7 +123,7 @@ void sendSupervisionFrame(int fd, unsigned char msg) {
   mesh[3]=mesh[1]^mesh[2];
   mesh[4]=FLAG;
   write(fd,mesh,5);
-  //printf("Sending Supervision Frame\n");
+  printf("Sending Supervision Frame - 0x%02x\n",msg);
 }
 
 
