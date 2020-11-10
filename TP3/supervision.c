@@ -7,8 +7,8 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
   unsigned char msg;
   printf("Reading response...\n");
   while (times!=5 && !getAlarmFlag()) {
-    read(fd,&msg,1);
-    
+    if(read(fd,&msg,1)<0)
+		return -1;
     if(times==0){
         if(msg==FLAG){
           times++;
@@ -22,7 +22,7 @@ int receiveSupervisionFrame(int fd, unsigned char control) {
         }
         else {
           if(msg==FLAG)
-            times--;
+            continue;
           else
             times=0;
         }

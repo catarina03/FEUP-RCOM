@@ -131,7 +131,7 @@ int receiverApp(int fd){
         for(int i=0; i<frame.filesizeSize;i++)
             fileSize|=frame.fileSize[i]<<(8*i);
         
-        
+        printf("--------FILE SIZE-------%d\n",fileSize);
         fileName = frame.fileName;
 
         //printf("File Name: %s\n", fileName);
@@ -151,13 +151,14 @@ int receiverApp(int fd){
     //unsigned char fullMessage[fileSize];
     int index = 0;
     int currSequence = -1;
-
+	int totalSize=0;
     while (state == 1) {
         memset(buff, 0, sizeof(buff));
         //printf("done memset\n");
         while ((size = llread(fd, buff)) <0) {
             printf("Error reading\n");
         }
+        
        // printf("exited llread\n");
         if (buff[0] == END_FRAME) {
             //printf("Received End Frame\n");
@@ -165,12 +166,12 @@ int receiverApp(int fd){
             break;
         }
          dataFrame data = parseDataFrame(buff, size);
-        
+        totalSize+=data.dataSize;
         if (data.control != DATA) {
             continue;
             }
         
-        printDataFrame(data);
+        //printDataFrame(data);
         for (int i =0;i<data.dataSize;i++){
             fullMessage[index+i] = data.data[i];
         }
@@ -180,6 +181,7 @@ int receiverApp(int fd){
             index += data.dataSize;
         }
     }
+    //printf("--------TOTAL SIZE------%d\n",totalSize);
 
 
     // * END Control Frame
