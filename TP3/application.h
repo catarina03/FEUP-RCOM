@@ -22,7 +22,7 @@ int receiverApp(int fd);
 
 int llread(int fd, char* buffer);
 
-infoFrame messageDestuffing(unsigned char*buff,int fd);
+infoFrame messageDestuffing(unsigned char*buff,int fd,unsigned char *bcc2);
 
 int closeReader(int fd);
 

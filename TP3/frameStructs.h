@@ -35,6 +35,7 @@ typedef struct {
 
   unsigned char *rawBytes; /**< @brief The array containing unprocessed bytes */
   int rawSize;       /**< @brief The size of the raw_bytes array */
+  unsigned char bcc2;
 }dataFrame;
 
 

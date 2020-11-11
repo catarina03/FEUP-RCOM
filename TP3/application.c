@@ -155,7 +155,9 @@ int receiverApp(int fd){
     while (state == 1) {
         memset(buff, 0, sizeof(buff));
         //printf("done memset\n");
+        printf("Sequence: %d\n",currSequence);
         while ((size = llread(fd, buff)) <0) {
+			memset(buff, 0, sizeof(buff));
             printf("Error reading\n");
         }
         
@@ -165,11 +167,11 @@ int receiverApp(int fd){
             state = 2;
             break;
         }
-         dataFrame data = parseDataFrame(buff, size);
+        dataFrame data = parseDataFrame(buff, size);
         totalSize+=data.dataSize;
         if (data.control != DATA) {
             continue;
-            }
+        }
         
         //printDataFrame(data);
         for (int i =0;i<data.dataSize;i++){
@@ -193,7 +195,7 @@ int receiverApp(int fd){
         char* name = (char*) malloc ((frame.filenameSize +7) * sizeof(char));
         //char name[frame.filenameSize +7];
 
-        sprintf(name, "cloned_%s", frame.fileName); //^ add +7 
+        sprintf(name, "cloned_%s", frame.fileName); 
         
         FILE *fl = fopen(name, "wb");
         if (fl != NULL) {
@@ -219,21 +221,27 @@ int receiverApp(int fd){
 
 
 int llread(int fd, char* buffer){
-
-     infoFrame frame = messageDestuffing(buffer,fd);
-    printInfoFrame(frame);
+	unsigned char bcc2=0xff;
+    infoFrame frame = messageDestuffing(buffer,fd,&bcc2);
+    //printInfoFrame(frame);
     //printf("Exited destuffing\n");
-    memcpy(buffer, frame.data,frame.size);
+    
     
     //printf("bcc1: %x - %x address ^ control\n",frame.bcc1,frame.address ^frame.control);
-    if(frame.bcc1!=(frame.address ^frame.control) ){
+    if(frame.bcc1!=(frame.address ^frame.control) || frame.bcc2 !=bcc2){
         sendSupervisionFrame(fd, CONTROL_RJ(currFrame));
+        for (int i= 0; i<frame.rawSize;i++){
+			if(i%10==0)
+				printf("\n");
+			printf("RD%d:%02x ",i,frame.rawData[i]);
+		}
         printf("Sent Negative Response\n");
         free(frame.rawData);
         free(frame.data);
         return -1;
     }
     else{
+		memcpy(buffer, frame.data,frame.size);
         sendSupervisionFrame(fd, CONTROL_RR(currFrame));
         //printf("Sent Positive Response\n");
         if(currFrame)
@@ -248,13 +256,15 @@ int llread(int fd, char* buffer){
 }
 
 
- infoFrame messageDestuffing(unsigned char* buff,int fd){
+ infoFrame messageDestuffing(unsigned char* buff,int fd ,unsigned char *bcc2){
 
-     infoFrame frame;
-    frame.rawData=(unsigned char*) malloc (sizeof(unsigned char));
+    infoFrame frame;
+    frame.rawData=(unsigned char*) malloc (sizeof(unsigned char)*(MAX_SIZE*2+7));
+    frame.data = (unsigned char*) malloc(sizeof(unsigned char)*(MAX_SIZE*2));
     int flags = 0;
     unsigned char msg;
     int size=0;
+    int lastEsc=0;
     while(flags!=2){
         //printf("read --");
         read(fd, &msg, 1);
@@ -268,35 +278,58 @@ int llread(int fd, char* buffer){
         else if (msg == FLAG && flags == 1) {
             flags = 2;
             //printf("Flag 2 - size %d\n",size);
+            if (size>1 && frame.rawData[size-2] == ESC) {
+				if (frame.rawData[size-1] == ESC_FLAG)
+					frame.rawData[--size-1]=FLAG;
+				else if (frame.rawData[size-1] == ESC_ESC)
+                  size--;
+			}
             break;
         }
         //printf("msg- 0x%02x size- %d rawData- 0x%02x",msg,size,frame.rawData);
         frame.rawData[size] = msg;
-        frame.rawData = (unsigned char*) realloc (frame.rawData, (size+2));
+        
         //printf(" --r");
-        if (size>0 && frame.rawData[size-1] == ESC) {
-            if (frame.rawData[size] == ESC_FLAG)
+        if (size>0 && frame.rawData[size-1] == ESC && !lastEsc) {
+            if (frame.rawData[size] == ESC_FLAG){
                 frame.rawData[--size]=FLAG;
-            else if (frame.rawData[size] == ESC_ESC)
+                lastEsc=1;
+			}
+            else if (frame.rawData[size] == ESC_ESC){
                   size--;
-            
+                  lastEsc=1;
+			  }
+							
         }
+        else
+         lastEsc=0;
+        
+        /*if(size>3){
+			frame.data[size-3] = frame.rawData[size];
+			//*bcc2^=frame.data[size-4];
+		}
+		else if(size==3)
+			frame.data[size-3] = frame.rawData[size];*/
+
         size++;
         //printf("--new size-%d\n",size);
     }
+    frame.rawData = (unsigned char*) realloc (frame.rawData, (size));
+    frame.data = (unsigned char*) realloc (frame.data, (size-4));
     //frame.rawData = (unsigned char*) realloc (frame.rawData, (size));
     //printf("exits\n");
     frame.flag=FLAG;
     frame.address = frame.rawData[0];
     frame.control = frame.rawData[1];
     frame.bcc1 = frame.rawData[2];
-    frame.data = (unsigned char*) malloc(sizeof(unsigned char)*(size-3));
-    //printf("%d\n",size);
-    for (int i = 3; i < size - 1; i++) {
-        frame.data[i-3] = frame.rawData[i];
-        
-        
+    
+    //printf("------ RAW SIZE------%d\n",size);
+    for (int i = 0; i < size - 4; i++) {
+		frame.data[i] = frame.rawData[i+3];
+        *bcc2^=frame.data[i];
     }
+    
+    
     frame.bcc2=frame.rawData[size-1];
     frame.size=size-4;
     frame.rawSize=size;
@@ -308,21 +341,27 @@ int llread(int fd, char* buffer){
 int closeReader(int fd){
 
     printf("Closing reader...\n");
-    if (receiveSupervisionFrame(fd, DISC) < 0) {
-        printf("Error recieving DISC Frame...\n"); 
-        return -1;
-    }
+    
 
     
     do{
-        sendSupervisionFrame(fd,DISC);
-        alarm(ALARM_TIME);
+		alarm(ALARM_TIME);
         setAlarmFlag(0);
+		int resp;
+		while((resp=receiveSupervisionFrame(fd, DISC)) <-0){
+			printf("Error recieving DISC Frame...\n"); 
+		}
+		
+		
+        if(sendSupervisionFrame(fd,DISC)!=5){
+			printf("Error Sending DISC\n");
+			continue;
+		}
+        
         printf("%d\n",getAlarmCounter());
         
-        if(receiveSupervisionFrame(fd, UA)){
-            alarm(0);
-            setAlarmCounter(0);
+        if(receiveSupervisionFrame(fd, UA)==TRUE){
+            resetAlarm();
             printf("\nClosed Reader\n");
             return 0;
         }
@@ -331,7 +370,7 @@ int closeReader(int fd){
             printf("Timed Out\n");
         } 
     }while(getAlarmCounter()<3);
-    setAlarmCounter(0);
+    resetAlarm();
 
     
     printf("Error recieving UA Frame...\n");   

@@ -115,15 +115,16 @@ unsigned char readSupervisionFrame(int fd){
 }
 
 
-void sendSupervisionFrame(int fd, unsigned char msg) {
+int sendSupervisionFrame(int fd, unsigned char msg) {
   unsigned char mesh[5];
   mesh[0]=FLAG;
   mesh[1]=A;
   mesh[2]=msg;
   mesh[3]=mesh[1]^mesh[2];
   mesh[4]=FLAG;
-  write(fd,mesh,5);
+  int size=write(fd,mesh,5);
   printf("Sending Supervision Frame - 0x%02x\n",msg);
+  return size;
 }
 
 

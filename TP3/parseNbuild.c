@@ -31,7 +31,6 @@ dataFrame parseDataFrame(unsigned char *rawBytes, int size) {
     frame.sequence = rawBytes[1];
 
     frame.dataSize = (rawBytes[2] << 8) | rawBytes[3];
-
     for (int i = 0; i < frame.dataSize; i++) {
         frame.data[i] = rawBytes[i+4];
     }
