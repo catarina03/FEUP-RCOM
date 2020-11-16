@@ -398,9 +398,8 @@ int openWriter(int fd){
         setAlarmFlag(0);
         //printf("%d\n",getAlarmCounter());
         
-        if(receiveSupervisionFrame(fd, UA)){
-            alarm(0);
-            setAlarmCounter(0);
+        if(receiveSupervisionFrame(fd, UA)>=0){
+            resetAlarm();
             return 0;
         }
         
@@ -408,7 +407,7 @@ int openWriter(int fd){
             printf("Timed Out\n");
         } 
     }while(getAlarmCounter()<3);
-    setAlarmCounter(0);
+    resetAlarm();
     
 
 
