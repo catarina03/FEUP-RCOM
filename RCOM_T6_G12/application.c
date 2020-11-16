@@ -183,7 +183,8 @@ int receiverApp(int fd){
             index += data.dataSize;
         }
     }
-    //printf("--------TOTAL SIZE------%d\n",totalSize);
+    printf("--------TOTAL SIZE------%d\n",totalSize);
+    printf("--------FILE SIZE------%d\n",fileSize);
 
 
     // * END Control Frame
@@ -408,9 +409,6 @@ int openWriter(int fd){
         } 
     }while(getAlarmCounter()<3);
     resetAlarm();
-    
-
-
 
     perror("Error retriving supervision frame\n");
 

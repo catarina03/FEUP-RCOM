@@ -2,13 +2,15 @@
 
 
 
-unsigned char *buildControlFrame(char ctrlField, unsigned fileSize, char* fileName, unsigned int L1, unsigned int L2, unsigned int frameSize) {
+unsigned char *buildControlFrame(char ctrlField, unsigned long fileSize, char* fileName, unsigned int L1, unsigned int L2, unsigned int frameSize) {
     unsigned char *frame=(unsigned char*) malloc(sizeof(unsigned char)*frameSize);
     printf(" ----Frame Size -------%d\n",frameSize);
     frame[0] = ctrlField;
     frame[1] = FILE_SIZE;
     frame[2] = L1;
     memcpy(&frame[3], &fileSize, L1);
+    /*for(int i=0; i<L1;i++)
+        printf("j = 0x%02x\n",frame[3+i]);*/
     frame[3+L1] = FILE_NAME;
     frame[4+L1] = L2;
     memcpy(&frame[5+L1], fileName, L2);
