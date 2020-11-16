@@ -183,8 +183,8 @@ int receiverApp(int fd){
             index += data.dataSize;
         }
     }
-    printf("--------TOTAL SIZE------%d\n",totalSize);
-    printf("--------FILE SIZE------%d\n",fileSize);
+    //printf("--------TOTAL SIZE------%d\n",totalSize);
+    //printf("--------FILE SIZE------%d\n",fileSize);
 
 
     // * END Control Frame
