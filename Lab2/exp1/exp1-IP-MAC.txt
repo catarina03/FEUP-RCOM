@@ -1,0 +1,11 @@
+RCOM
+
+tux64: 
+eth0:
+IP: 172.16.60.254/24
+MAC: 00:21:5a:c5:61:bb  /*linha 4 do ifconfig*/
+
+tux63:
+eth0:
+IP: 172.16.60.1/24
+MAC: 00:21:5a:61:2f:4e  /*linha 4 do ifconfig*/
