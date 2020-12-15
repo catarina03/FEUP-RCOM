@@ -1,7 +1,6 @@
 #include "connection.h"
 
 
-
 int init(char *ip, int port, int *socketfd){
     struct sockaddr_in servaddr; 
   
@@ -29,7 +28,7 @@ int init(char *ip, int port, int *socketfd){
 }
 
 
-int read_socket(int socketfd){
+int ftp_rcv_response(int socketfd){
     FILE* f = fdopen(socketfd,"r");
 
     char *buf;
@@ -46,79 +45,77 @@ int read_socket(int socketfd){
     return response;
 }
 
-/*
-//Logon Server
-int ftp_login(char *addr, int port, char *username, char *password)
-{
+
+int ftp_send_command(int sockfd, char *msg) {
+    int b, len=strlen(msg);
+
+    if((b=write(sockfd,msg,len))!=len){
+        printf("Couldn't write to socket");
+        return 1;
+    }
+    return 0;
+}
+
+
+//Log on Server
+int ftp_login(int socketfd, char *username, char *password) {
 	int ret;
-	LOG_INFO("connect...\r\n");
-	ret = socket_connect(m_socket_cmd, addr, port);
-	if(ret != 1)
-	{
-		LOG_INFO("connect server failed!\r\n");
-		return 0;
-	}
-	LOG_INFO("connect ok.\r\n");
-    //Waiting for Welcome Message
-	ret = ftp_recv_respond(m_recv_buffer, 1024);
-	if(ret != 220)
-	{
-		LOG_INFO("bad server, ret=%d!\r\n", ret);
-		socket_close(m_socket_cmd);
-		return 0;
-	}
-	
-	LOG_INFO("login...\r\n");
+	char cmd_send[1024];
+
     //Send USER
-	sprintf(m_send_buffer, "USER %s\r\n", username);
-	ret = ftp_send_command(m_send_buffer);
-	if(ret != 1)
-	{
-		socket_close(m_socket_cmd);
-		return 0;
+	sprintf(cmd_send, "USER %s\r\n", username);
+	ret = ftp_send_command(socketfd, cmd_send);
+	if(ret != 0)
+	{	
+		printf("ret is %d\n", ret);
+		perror("Couldn't send USER command");
+		socket_close(socketfd);
+		return 1;
 	}
-	ret = ftp_recv_respond(m_recv_buffer, 1024);
-	if(ret != 331)
+	ret = ftp_rcv_response(socketfd);
+	if(ret != USER_LOGIN)
 	{
-		socket_close(m_socket_cmd);
-		return 0;
+		perror("Couldn't log in user");
+		socket_close(socketfd);
+		return 1;
 	}
 	
     //Send PASS
-	sprintf(m_send_buffer, "PASS %s\r\n", password);
-	ret = ftp_send_command(m_send_buffer);
-	if(ret != 1)
+	sprintf(cmd_send, "PASS %s\r\n", password);
+	ret = ftp_send_command(socketfd, cmd_send);
+	if(ret != 0)
 	{
-		socket_close(m_socket_cmd);
-		return 0;
+		socket_close(socketfd);
+		return 1;
 	}
-	ret = ftp_recv_respond(m_recv_buffer, 1024);
-	if(ret != 230)
+	ret = ftp_rcv_response(socketfd);
+	if(ret != PASS_LOGIN)
 	{
-		socket_close(m_socket_cmd);
-		return 0;
+		socket_close(socketfd);
+		return 1;
 	}
-	LOG_INFO("login success.\r\n");
 	
     //Set to binary mode
-	ret = ftp_send_command("TYPE I\r\n");
-	if(ret != 1)
+	ret = ftp_send_command(socketfd, "TYPE I\r\n");
+	if(ret != 0)
 	{
-		socket_close(m_socket_cmd);
-		return 0;
+		perror("Couldn't send binary mode command");
+		socket_close(socketfd);
+		return 1;
 	}
-	ret = ftp_recv_respond(m_recv_buffer, 1024);
-	if(ret != 200)
+	ret = ftp_rcv_response(socketfd);
+	if(ret != BIN_READY)
 	{
-		socket_close(m_socket_cmd);
-		return 0;
+		perror("Couldn't set binary mode");
+		socket_close(socketfd);
+		return 1;
 	}
-	return 1;
+	return 0;
 }
-*/
 
 
-int close(sockfd) {
+
+int socket_close(int sockfd) {
 	close(sockfd);
 	return 0;
 }

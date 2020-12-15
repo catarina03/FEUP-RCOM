@@ -86,8 +86,8 @@ int getIP(char host[], urlData *url_object) {
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
-        fprintf(stderr, "usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
-        exit(1);
+        perror("usage: download ftp://[<user>:<password>@]<host>/<url-path>");
+        return 1;
     }
 
     urlData url_object;
@@ -103,17 +103,22 @@ int main(int argc, char *argv[])
 
     // initing
     if (init(url_object.ip, 21, &socketfd) != 0){
-        printf("Error: init()\n");
-        return -1;
+        perror("Error: init()");
+        return 1;
     }
 
-    int response = read_socket(socketfd);
-    if(response!=SERV_READY){
-        printf("Received Bad Response\n");
-        close(socketfd);
-        return -1;
+    int response = ftp_rcv_response(socketfd);
+    if(response != SERV_READY){
+        perror("Received Bad Response");
+        socket_close(socketfd);
+        return 1;
     }
-    return 0;
+
+    // logging in
+    if(ftp_login(socketfd, url_object.user, url_object.password) != 0){
+        perror("Error logging in");
+        return 1;
+    }
 
 
 
