@@ -2,10 +2,10 @@
 
 
 typedef struct {
-    char *user;
-    char *password;
-    char *host;
-    char *url_path;
+    char user[256];
+    char password[256];
+    char host[256];
+    char url_path[256];
 } urlData;
 
 int url_parser(char *url, urlData *url_object);

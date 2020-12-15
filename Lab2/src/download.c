@@ -27,16 +27,20 @@ int url_parser(char *url, urlData *url_object){
     char *host = strtok(NULL, " ");
 
     if ((user != NULL) && (password != NULL)){
-        url_object->user = user;
-        url_object->password = password;
-        url_object->host = host;
+        strcpy(url_object->user, user);
+        strcpy(url_object->password, password);
+        strcpy(url_object->host, host);
     }
     else {
-        url_object->user = "anonymous";
-        url_object->password = "password";
-        url_object->host = args;
+        user = "anonymous";
+        password = "password";
+        host = args;
+
+        strcpy(url_object->user, user);
+        strcpy(url_object->password, password);
+        strcpy(url_object->host, host);
     }
-    url_object->url_path = url_path;
+    strcpy(url_object->url_path, url_path);
 
     printf("User: %s\n", url_object->user);
     printf("Password: %s\n", url_object->password);
