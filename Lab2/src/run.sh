@@ -2,7 +2,7 @@
 
 #rm download
 
-if gcc -o download -Wall download.c; then
+if gcc -o download -Wall download.c connection.c; then
 ./download ftp://ftp.up.pt/pub/gnu/GNUinfo/Audio/index.txt;
 else
 echo "COMPILATION ERROR";

@@ -95,5 +95,28 @@ int main(int argc, char *argv[])
     url_parser(argv[1], &url_object);
     getIP(url_object.url_host, &url_object);
 
+
+    int socketfd, socketfd_rec;
+    char command[256];
+    char url_copy[256];
+    strcpy(url_copy, argv[1]);
+
+    // initing
+    if (init(url_object.ip, 21, &socketfd) != 0){
+        printf("Error: init()\n");
+        return -1;
+    }
+
+    int response = read_socket(socketfd);
+    if(response!=SERV_READY){
+        printf("Received Bad Response\n");
+        close(socketfd);
+        return -1;
+    }
+    return 0;
+
+
+
+
     return 0;
 }
