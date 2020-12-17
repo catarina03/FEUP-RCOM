@@ -42,6 +42,7 @@ int url_parser(char *url, urlData *url_object){
     }
     strcpy(url_object->url_path, url_path);
 
+    printf("\n -- URL OBJECT -- \n");
     printf("User: %s\n", url_object->user);
     printf("Password: %s\n", url_object->password);
     printf("Host: %s\n", url_object->url_host);
@@ -72,7 +73,7 @@ int getIP(char host[], urlData *url_object) {
     }
 
     printf("Host name  : %s\n", h->h_name);
-    printf("IP Address : %s\n",inet_ntoa(*((struct in_addr *)h->h_addr)));
+    printf("IP Address : %s\n\n",inet_ntoa(*((struct in_addr *)h->h_addr)));
 
     strcpy(url_object->host_name,  h->h_name);
     strcpy(url_object->ip, inet_ntoa(*((struct in_addr *)h->h_addr)));
@@ -101,7 +102,7 @@ int main(int argc, char *argv[])
     char url_copy[256];
     strcpy(url_copy, argv[1]);
 
-    // initing
+    // inits
     if (init(url_object.ip, 21, &socketfd) != 0){
         perror("Error: init()");
         return 1;
@@ -114,9 +115,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // logging in
+
+    // logs in
     if(ftp_login(socketfd, url_object.user, url_object.password) != 0){
         perror("Error logging in");
+        return 1;
+    }
+
+    if(ftp_download(socketfd, url_object.url_path) != 0){
+        perror("Error downloading file");
         return 1;
     }
 
