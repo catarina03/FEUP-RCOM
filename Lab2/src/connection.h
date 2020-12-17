@@ -1,7 +1,6 @@
 #include "macros.h"
 
 
-//int init(char *ip, int port, int *socketfd);
 int init(char *ip, int port, int *socketfd);
 
 int ftp_rcv_command(int socketfd);

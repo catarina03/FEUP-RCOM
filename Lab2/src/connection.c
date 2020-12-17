@@ -1,8 +1,8 @@
 #include "connection.h"
 
 
+//Inits connection
 int init(char *ip, int port, int *socketfd){
-
     struct sockaddr_in servaddr; 
 
     bzero(&servaddr, sizeof(servaddr)); 
@@ -29,24 +29,26 @@ int init(char *ip, int port, int *socketfd){
 }
 
 
+//Receives a response
 int ftp_rcv_response(int socketfd){
     FILE* f = fdopen(socketfd,"r");
-
     char *buf;
-    size_t bRead = 0;
+    size_t bytes_read = 0;
     int response;
 
-    while(getline(&buf,&bRead,f)>0){
+    while(getline(&buf,&bytes_read,f)>0){
         printf("%s",buf);
         if(buf[3]==' '){
             sscanf(buf,"%d",&response);
             break;
         }
     }
+
     return response;
 }
 
 
+//Sends a command
 int ftp_send_command(int sockfd, char *msg) {
     int b, len=strlen(msg);
 
@@ -54,14 +56,16 @@ int ftp_send_command(int sockfd, char *msg) {
         printf("Couldn't write to socket");
         return 1;
     }
+
     return 0;
 }
 
 
-//Log on Server
+//Logs on Server
 int ftp_login(int socketfd, char *username, char *password) {
 	int ret;
 	char cmd_send[1024];
+
 
     //Send USER
 	sprintf(cmd_send, "USER %s\r\n", username);
@@ -81,6 +85,7 @@ int ftp_login(int socketfd, char *username, char *password) {
 		return 1;
 	}
 	
+
     //Send PASS
 	sprintf(cmd_send, "PASS %s\r\n", password);
 	ret = ftp_send_command(socketfd, cmd_send);
@@ -98,6 +103,7 @@ int ftp_login(int socketfd, char *username, char *password) {
 		return 1;
 	}
 	
+
     //Set to binary mode
 	ret = ftp_send_command(socketfd, "TYPE I\r\n");
 	if(ret != 0)
@@ -113,11 +119,13 @@ int ftp_login(int socketfd, char *username, char *password) {
 		socket_close(socketfd);
 		return 1;
 	}
+
+
 	return 0;
 }
 
 
-//Set FTP server to passive mode and resolve data ports
+//Sets FTP server to passive mode
 static int ftp_enter_passive(int socketfd, char *ip, int *port)
 {
 	int ret, a,b,c,d,pa,pb;
@@ -133,8 +141,8 @@ static int ftp_enter_passive(int socketfd, char *ip, int *port)
 
 	//Receives response
 	FILE* f = fdopen(socketfd,"r");
-    size_t bRead = 0;
-    while(getline(&buf,&bRead,f)>0){
+    size_t bytes_read = 0;
+    while(getline(&buf,&bytes_read,f)>0){
 		printf("%s",buf);
         if(buf[3]==' '){
             sscanf(buf,"%d",&ret);
@@ -148,6 +156,7 @@ static int ftp_enter_passive(int socketfd, char *ip, int *port)
 		return 1;
 	}
 
+	//Calculates port
 	find = strrchr(buf, '(');
 	sscanf(find, "(%d,%d,%d,%d,%d,%d)", &a, &b, &c, &d, &pa, &pb);
 	sprintf(ip, "%d.%d.%d.%d", a, b, c, d);
@@ -162,7 +171,8 @@ int ftp_download(int socketfd, char *url_path) {
 	int ret, port, data_socketfd;
 	char ip[64], cmd_send[1024];
     
-	//Query data address
+
+	//Queries data address
 	ret = ftp_enter_passive(socketfd, ip, &port);
 	if(ret != 0)
 	{
@@ -172,7 +182,7 @@ int ftp_download(int socketfd, char *url_path) {
 	}
 
 
-	//Connect data ports
+	//Inits data socket connection
 	ret = init(ip, port, &data_socketfd);
 	if(ret != 0)
 	{
@@ -195,12 +205,14 @@ int ftp_download(int socketfd, char *url_path) {
 	ret = ftp_rcv_response(socketfd);
 	if(ret != RETRV_READY)
 	{
-		perror("failed to open binary mode connaction");
+		perror("failed to open binary mode connection");
 		socket_close(data_socketfd);
 		socket_close(socketfd);
 		return 1;
 	}
 
+
+	//Downloads
 	int file_fd, bytes_read;
 	char url_path_copy[1024], buf[1024], *filename;
 	strcpy(url_path_copy, url_path);
@@ -210,13 +222,13 @@ int ftp_download(int socketfd, char *url_path) {
 		filename = token;
 		token = strtok(NULL, "/");
 	}
+
 	if ((file_fd = open(filename, O_WRONLY | O_CREAT, 0777)) < 0) {
 		perror("failed to open file");
 		socket_close(data_socketfd);
 		socket_close(socketfd);
 		return 1;
 	}
-
 	while((bytes_read = read(data_socketfd, buf, 1024)) > 0) {
 		if (write(file_fd, buf, bytes_read) < 0){
 			perror("Error while writing downloaded data to file");
@@ -248,8 +260,8 @@ int ftp_download(int socketfd, char *url_path) {
 	}
 	socket_close(socketfd);
 
-	return 0;
 
+	return 0;
 }
 
 

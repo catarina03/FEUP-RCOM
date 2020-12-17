@@ -3,7 +3,7 @@
 #rm download
 
 if gcc -o download -Wall download.c connection.c; then
-./download ftp://rcom:rcom@netlab1.fe.up.pt/files/crab.mp4;
+./download ftp://rcom:rcom@netlab1.fe.up.pt/pipe.txt;
 else
 echo "COMPILATION ERROR";
 fi

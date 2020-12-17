@@ -1,7 +1,6 @@
 #include "download.h"
 
 
-
 int url_parser(char *url, urlData *url_object){
     char *ftp = strtok(url, "/");
     char *args = strtok(NULL, "/");
@@ -11,12 +10,10 @@ int url_parser(char *url, urlData *url_object){
         perror("url should start with ftp");
         return -1;
     }
-
     if (args == NULL) {
         perror("No <host> or [<user>:<password>@]<host> declared");
         return -1;
     }
-
     if (url_path == NULL){
         perror("<url-path> is null");
         return -1;
@@ -54,7 +51,7 @@ int url_parser(char *url, urlData *url_object){
 
 int getIP(char host[], urlData *url_object) {
 	struct hostent *h;
-
+    
     /*
     struct hostent {
         char    *h_name;	Official name of the host. 
@@ -82,31 +79,27 @@ int getIP(char host[], urlData *url_object) {
 }
 
 
-
-
 int main(int argc, char *argv[])
 {
+    //checks correct usage
     if (argc != 2) {
         perror("usage: download ftp://[<user>:<password>@]<host>/<url-path>");
         return 1;
     }
 
-    urlData url_object;
 
+    //gets url data
+    urlData url_object;
     url_parser(argv[1], &url_object);
     getIP(url_object.url_host, &url_object);
 
 
-    int socketfd;
-    char url_copy[256];
-    strcpy(url_copy, argv[1]);
-
     // inits
+    int socketfd;
     if (init(url_object.ip, 21, &socketfd) != 0){
         perror("Error: init()");
         return 1;
     }
-
     int response = ftp_rcv_response(socketfd);
     if(response != SERV_READY){
         perror("Received Bad Response");
@@ -121,12 +114,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+
+    //downloads file
     if(ftp_download(socketfd, url_object.url_path) != 0){
         perror("Error downloading file");
         return 1;
     }
-
-
 
 
     return 0;
