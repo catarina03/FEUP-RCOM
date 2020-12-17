@@ -97,8 +97,7 @@ int main(int argc, char *argv[])
     getIP(url_object.url_host, &url_object);
 
 
-    int socketfd, socketfd_rec;
-    char command[256];
+    int socketfd;
     char url_copy[256];
     strcpy(url_copy, argv[1]);
 

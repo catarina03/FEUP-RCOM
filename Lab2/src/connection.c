@@ -74,7 +74,7 @@ int ftp_login(int socketfd, char *username, char *password) {
 		return 1;
 	}
 	ret = ftp_rcv_response(socketfd);
-	if(ret != USER_LOGIN)
+	if(ret != USER_LOGIN && ret != PASS_LOGIN)
 	{
 		perror("Couldn't log in user");
 		socket_close(socketfd);
@@ -159,7 +159,7 @@ static int ftp_enter_passive(int socketfd, char *ip, int *port)
 
 //Download Files
 int ftp_download(int socketfd, char *url_path) {
-	int i, ret, port, data_socketfd;
+	int ret, port, data_socketfd;
 	char ip[64], cmd_send[1024];
     
 	//Query data address

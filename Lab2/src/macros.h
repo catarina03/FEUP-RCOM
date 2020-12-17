@@ -20,7 +20,3 @@
 #define RETRV_READY 150
 #define FILE_READY 226
 
-#define DEFAULT_SERVER_PORT "ftp"
-#define DEFAULT_SERVER_ADDR "ftp.up.pt"
-#define DEFAULT_FILE_PATH   "mirrors/ftp.gnome.org/README" 
-
